@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LogicLab — Algorithm Visualization Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ─── Sidebar ─────────────────────────────────── -->
+<aside id="sidebar">
+  <div class="brand">
+    <span class="brand-icon">⬡</span>
+    <div>
+      <div class="brand-name">LogicLab</div>
+      <div class="brand-sub">Visualization Engine</div>
+    </div>
+  </div>
+
+  <nav class="nav-group">
+    <div class="nav-label">Sorting</div>
+    <button class="nav-btn active" data-module="sorting">
+      <span class="nav-icon">⇅</span> Sorting Algorithms
+    </button>
+  </nav>
+
+  <nav class="nav-group">
+    <div class="nav-label">Searching</div>
+    <button class="nav-btn" data-module="searching">
+      <span class="nav-icon">◎</span> Searching
+    </button>
+  </nav>
+
+  <nav class="nav-group">
+    <div class="nav-label">Linear Structures</div>
+    <button class="nav-btn" data-module="stack">
+      <span class="nav-icon">▤</span> Stack & Queue
+    </button>
+    <button class="nav-btn" data-module="linkedlist">
+      <span class="nav-icon">⬡</span> Linked List
+    </button>
+  </nav>
+
+  <nav class="nav-group">
+    <div class="nav-label">Trees & Heaps</div>
+    <button class="nav-btn" data-module="bst">
+      <span class="nav-icon">⬡</span> Binary Search Tree
+    </button>
+    <button class="nav-btn" data-module="heap">
+      <span class="nav-icon">△</span> Heap
+    </button>
+  </nav>
+
+  <nav class="nav-group">
+    <div class="nav-label">Graphs</div>
+    <button class="nav-btn" data-module="graph">
+      <span class="nav-icon">◈</span> Graph Traversal
+    </button>
+  </nav>
+
+  <nav class="nav-group">
+    <div class="nav-label">Dynamic Programming</div>
+    <button class="nav-btn" data-module="dp">
+      <span class="nav-icon">⊞</span> DP Visualizer
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">Made by Fantastic 4 · B.Tech CSE</div>
+</aside>
+
+<!-- ─── Main Content ─────────────────────────────── -->
+<main id="main">
+  <div id="topbar">
+    <div id="module-title">Sorting Algorithms</div>
+    <div id="complexity-badge"></div>
+  </div>
+
+  <!-- Controls strip -->
+  <div id="controls">
+    <div id="algo-tabs"></div>
+    <div id="ctrl-right">
+      <label class="ctrl-label">Speed
+        <input type="range" id="speed-slider" min="1" max="10" value="5">
+      </label>
+      <button id="btn-generate">New Array</button>
+      <button id="btn-play" class="btn-primary">▶ Play</button>
+      <button id="btn-step">Step →</button>
+      <button id="btn-reset">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- Visualization canvas -->
+  <div id="viz-area">
+    <canvas id="canvas"></canvas>
+    <div id="dom-layer"></div>
+  </div>
+
+  <!-- Metrics bar -->
+  <div id="metrics-bar">
+    <div class="metric"><span class="metric-label">Comparisons</span><span id="m-comparisons" class="metric-val">0</span></div>
+    <div class="metric"><span class="metric-label">Swaps</span><span id="m-swaps" class="metric-val">0</span></div>
+    <div class="metric"><span class="metric-label">Array Accesses</span><span id="m-accesses" class="metric-val">0</span></div>
+    <div class="metric"><span class="metric-label">Status</span><span id="m-status" class="metric-val">Ready</span></div>
+  </div>
+
+  <!-- Info / pseudocode panel -->
+  <div id="info-panel">
+    <div id="info-left">
+      <div id="pseudocode-box"></div>
+    </div>
+    <div id="info-right">
+      <div id="complexity-table"></div>
+    </div>
+  </div>
+</main>
+
+<script src="js/engines/sorting.js"></script>
+<script src="js/engines/searching.js"></script>
+<script src="js/engines/stack.js"></script>
+<script src="js/engines/linkedlist.js"></script>
+<script src="js/engines/bst.js"></script>
+<script src="js/engines/heap.js"></script>
+<script src="js/engines/graph.js"></script>
+<script src="js/engines/dp.js"></script>
+<script src="js/ui/renderer.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
