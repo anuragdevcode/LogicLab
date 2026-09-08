@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 
 const PseudocodeBox: React.FC = () => {
@@ -28,14 +29,24 @@ const PseudocodeBox: React.FC = () => {
           return (
             <div
               key={idx}
-              className={`flex items-start gap-3 px-2 py-1 rounded transition-colors ${
-                isActive
-                  ? 'bg-accent/15 border-l-2 border-accent text-white font-semibold'
-                  : 'text-textSecondary hover:text-textPrimary hover:bg-white/[0.02]'
+              className={`relative flex items-start gap-3 px-2 py-1 rounded transition-colors ${
+                isActive ? 'text-white font-semibold' : 'text-textSecondary hover:text-textPrimary'
               }`}
             >
+              {isActive && (
+                <motion.div
+                  layoutId="pseudoActiveLineIndicator"
+                  className="absolute inset-0 bg-accent/15 border-l-2 border-accent rounded-r -z-10"
+                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                />
+              )}
+
               {/* Line Number Gutter */}
-              <span className={`w-5 text-right flex-shrink-0 select-none ${isActive ? 'text-accent font-bold' : 'text-textSecondary/40'}`}>
+              <span
+                className={`w-5 text-right flex-shrink-0 select-none ${
+                  isActive ? 'text-accent font-bold' : 'text-textSecondary/40'
+                }`}
+              >
                 {idx + 1}
               </span>
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 
 const SEARCH_PRESETS = [
@@ -106,21 +107,23 @@ const SearchControls: React.FC = () => {
           onChange={handleTargetChange}
         />
         <div className="flex items-center gap-1 bg-surface-secondary p-0.5 rounded-md border border-white/5">
-          <button
+          <motion.button
+            whileTap={{ scale: 0.94 }}
             onClick={handlePickPresent}
             className="px-2 py-0.5 text-[11px] font-mono rounded text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors"
             title="Pick a random value currently present in the array"
           >
             Present
-          </button>
+          </motion.button>
           <span className="text-surface-tertiary">|</span>
-          <button
+          <motion.button
+            whileTap={{ scale: 0.94 }}
             onClick={handlePickAbsent}
             className="px-2 py-0.5 text-[11px] font-mono rounded text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
             title="Pick a value guaranteed absent from the array"
           >
             Absent
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -133,8 +136,9 @@ const SearchControls: React.FC = () => {
           {SEARCH_PRESETS.map((opt) => {
             const isActive = activePreset === opt.id;
             return (
-              <button
+              <motion.button
                 key={opt.id}
+                whileTap={{ scale: 0.94 }}
                 onClick={() => handleSelectPreset(opt.id)}
                 className={`px-2.5 py-1 text-xs font-medium rounded transition-all ${
                   isActive
@@ -143,7 +147,7 @@ const SearchControls: React.FC = () => {
                 }`}
               >
                 {opt.label}
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -166,7 +170,8 @@ const SearchControls: React.FC = () => {
 
       {/* Custom Array Popover */}
       <div className="relative">
-        <button
+        <motion.button
+          whileTap={{ scale: 0.94 }}
           onClick={() => setIsCustomOpen(!isCustomOpen)}
           className={`btn-secondary text-xs py-1.5 px-2.5 flex items-center gap-1.5 transition-all ${
             isCustomOpen ? 'bg-surface-tertiary text-white border-accent/40' : ''
@@ -182,57 +187,67 @@ const SearchControls: React.FC = () => {
             />
           </svg>
           <span>Custom</span>
-        </button>
+        </motion.button>
 
-        {isCustomOpen && (
-          <div className="absolute left-0 top-full mt-2 z-40 w-72 p-3 bg-surface-secondary/95 backdrop-blur-md border border-surface-tertiary rounded-xl shadow-2xl flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex justify-between items-center text-xs font-semibold text-textPrimary">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-textSecondary">
-                Custom Array
-              </span>
-              <button
-                onClick={() => setIsCustomOpen(false)}
-                className="text-textSecondary hover:text-white p-0.5 rounded transition-colors"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <input
-              type="text"
-              className="ctrl-input w-full text-xs font-mono"
-              placeholder="e.g. 10, 24, 38, 52, 66, 80"
-              value={customInput}
-              onChange={(e) => setCustomInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleApplyCustom()}
-              autoFocus
-            />
-            <label className="flex items-center gap-2 text-[11px] text-textSecondary cursor-pointer select-none">
+        <AnimatePresence>
+          {isCustomOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="absolute left-0 top-full mt-2 z-40 w-72 p-3 bg-surface-secondary/95 backdrop-blur-md border border-surface-tertiary rounded-xl shadow-2xl flex flex-col gap-2.5"
+            >
+              <div className="flex justify-between items-center text-xs font-semibold text-textPrimary">
+                <span className="font-mono text-[11px] uppercase tracking-wider text-textSecondary">
+                  Custom Array
+                </span>
+                <button
+                  onClick={() => setIsCustomOpen(false)}
+                  className="text-textSecondary hover:text-white p-0.5 rounded transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
               <input
-                type="checkbox"
-                checked={autoSortCustom}
-                onChange={(e) => setAutoSortCustom(e.target.checked)}
-                className="rounded border-surface-tertiary text-accent focus:ring-0"
+                type="text"
+                className="ctrl-input w-full text-xs font-mono"
+                placeholder="e.g. 10, 24, 38, 52, 66, 80"
+                value={customInput}
+                onChange={(e) => setCustomInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleApplyCustom()}
+                autoFocus
               />
-              <span>Auto-sort ascending (recommended for search)</span>
-            </label>
-            <div className="flex justify-end gap-2">
-              <button
-                className="btn-secondary text-xs py-1 px-2.5"
-                onClick={() => setIsCustomOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn-primary text-xs py-1 px-3"
-                onClick={handleApplyCustom}
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        )}
+              <label className="flex items-center gap-2 text-[11px] text-textSecondary cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={autoSortCustom}
+                  onChange={(e) => setAutoSortCustom(e.target.checked)}
+                  className="rounded border-surface-tertiary text-accent focus:ring-0"
+                />
+                <span>Auto-sort ascending (recommended for search)</span>
+              </label>
+              <div className="flex justify-end gap-2">
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  className="btn-secondary text-xs py-1 px-2.5"
+                  onClick={() => setIsCustomOpen(false)}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  className="btn-primary text-xs py-1 px-3"
+                  onClick={handleApplyCustom}
+                >
+                  Apply
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

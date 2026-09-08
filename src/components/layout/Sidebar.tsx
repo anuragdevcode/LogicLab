@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 
 const Sidebar: React.FC = () => {
@@ -108,19 +109,19 @@ const Sidebar: React.FC = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 w-60 bg-surface border-r border-surface-tertiary flex flex-col z-50 transform transition-transform duration-300 ${
+        className={`fixed lg:static inset-y-0 left-0 w-60 bg-surface border-r border-white/10 flex flex-col z-50 transform transition-transform duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Brand */}
-        <div className="p-4 border-b border-surface-tertiary flex items-center justify-between">
+        <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 no-underline">
-            <div className="w-7 h-7 rounded-lg bg-accent/20 border border-accent/40 flex items-center justify-center text-accent font-mono font-bold text-sm">
+            <div className="w-7 h-7 rounded-md bg-accent/20 border border-accent/40 flex items-center justify-center text-accent font-mono font-bold text-sm">
               LL
             </div>
             <div>
-              <div className="text-textPrimary font-bold text-base tracking-tight font-sans">LogicLab</div>
-              <div className="text-textSecondary text-[10px] tracking-wider uppercase font-mono">Algorithm Visualizer</div>
+              <div className="text-textPrimary font-bold text-sm tracking-tight font-sans">LogicLab</div>
+              <div className="text-textSecondary/60 text-[9px] tracking-wider uppercase font-mono">Algorithm Visualizer</div>
             </div>
           </Link>
 
@@ -140,26 +141,32 @@ const Sidebar: React.FC = () => {
         <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
           {navGroups.map((group, idx) => (
             <div key={idx}>
-              <h3 className="text-[10px] font-semibold text-textSecondary uppercase tracking-[0.15em] mb-2 px-3 font-mono">
+              <h3 className="text-[10px] font-semibold text-textSecondary/70 uppercase tracking-[0.15em] mb-2 px-3 font-mono">
                 {group.title}
               </h3>
               <div className="space-y-0.5">
                 {group.links.map((link) => (
-                  <NavLink
+                  <motion.div
                     key={link.to}
-                    to={link.to}
-                    className={({ isActive }) =>
-                      `nav-btn flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                        isActive
-                          ? 'bg-accent text-white font-semibold shadow-sm'
-                          : 'text-textSecondary hover:text-textPrimary hover:bg-surface-tertiary/50'
-                      }`
-                    }
-                    onClick={() => setSidebarOpen(false)}
+                    whileHover={{ x: 2 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.12 }}
                   >
-                    <span className="opacity-80">{link.icon}</span>
-                    <span>{link.label}</span>
-                  </NavLink>
+                    <NavLink
+                      to={link.to}
+                      className={({ isActive }) =>
+                        `nav-btn flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                          isActive
+                            ? 'bg-accent text-white font-medium shadow-sm'
+                            : 'text-textSecondary hover:text-textPrimary hover:bg-white/[0.04]'
+                        }`
+                      }
+                      onClick={() => setSidebarOpen(false)}
+                    >
+                      <span className="opacity-80">{link.icon}</span>
+                      <span>{link.label}</span>
+                    </NavLink>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -167,7 +174,7 @@ const Sidebar: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-surface-tertiary text-center text-[10px] font-mono text-textSecondary">
+        <div className="p-3 border-t border-white/10 text-center text-[10px] font-mono text-textSecondary/50">
           Made by Fantastic 4 · B.Tech CSE
         </div>
       </aside>

@@ -8,7 +8,7 @@ const Topbar: React.FC = () => {
   const algoName = useAppStore((s) => s.algoName);
 
   return (
-    <header className="h-12 border-b border-surface-tertiary bg-surface flex items-center justify-between px-4 select-none">
+    <header className="h-12 border-b border-white/10 bg-surface flex items-center justify-between px-4 select-none flex-shrink-0">
       {/* Left: Mobile Toggle & Notion Breadcrumb */}
       <div className="flex items-center gap-3 min-w-max">
         <button
@@ -21,12 +21,12 @@ const Topbar: React.FC = () => {
           </svg>
         </button>
 
-        <div className="flex items-center gap-1.5 text-xs font-mono">
-          <span className="text-textSecondary hidden sm:inline">LogicLab</span>
-          <span className="text-textSecondary/40 hidden sm:inline">/</span>
+        <div className="flex items-center gap-1.5 text-xs font-sans">
+          <span className="text-textSecondary/60 hidden sm:inline">LogicLab</span>
+          <span className="text-textSecondary/30 hidden sm:inline">/</span>
           <span className="text-textSecondary hidden md:inline">{moduleTitle}</span>
-          <span className="text-textSecondary/40 hidden md:inline">/</span>
-          <span className="text-textPrimary font-semibold">{algoName || moduleTitle}</span>
+          <span className="text-textSecondary/30 hidden md:inline">/</span>
+          <span className="text-textPrimary font-semibold tracking-tight">{algoName || moduleTitle}</span>
         </div>
       </div>
 
@@ -35,9 +35,9 @@ const Topbar: React.FC = () => {
         <AlgoTabs />
       </div>
 
-      {/* Right: Clean minimal status pill */}
+      {/* Right: Clean minimal status indicator */}
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-surface-secondary border border-surface-tertiary text-[11px] font-mono text-textSecondary">
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-secondary/80 border border-white/10 text-[11px] font-sans text-textSecondary">
           <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
           <span className="hidden sm:inline">Interactive Lab</span>
         </div>

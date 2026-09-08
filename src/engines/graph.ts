@@ -1,16 +1,21 @@
-import { ComplexityInfo, GraphNode, GraphEdge, GraphStep, MetricsDelta } from '@/types';
+import { ComplexityInfo, GraphNode, GraphEdge, GraphStep, MetricsDelta, DataStructureInfo } from '@/types';
 
 const delta = (comparisons = 0, swaps = 0, accesses = 0): MetricsDelta => ({ comparisons, swaps, accesses });
 
-export interface GraphAlgorithmInfo {
-  name: string;
-  complexity: ComplexityInfo;
-  pseudo: string[];
-}
-
-export const GRAPH_INFO: Record<string, GraphAlgorithmInfo> = {
+export const GRAPH_INFO: Record<string, DataStructureInfo> = {
   bfs: {
-    name: 'BFS',
+    name: 'Breadth-First Search (BFS)',
+    category: 'Graph Traversal',
+    description:
+      'Traverses graph nodes level by level using a FIFO queue. Explores all immediate neighbor vertices at the present depth before moving to vertices at the next depth level.',
+    whenToUse:
+      'Finding the shortest path on unweighted graphs, peer-to-peer torrent chunk finding, social network degree of separation analysis, web crawling.',
+    constraints: [
+      'Graph Size: |V| = 6 nodes (A-F), |E| = 8 edges',
+      'Queue Discipline: FIFO queue determines traversal order',
+      'Shortest Path: Guarantees shortest path on unweighted graphs',
+      'Cycle Guard: Visited set prevents infinite cyclic loops',
+    ],
     complexity: { time: 'O(V + E)', space: 'O(V)', best: 'O(1)', worst: 'O(V+E)' },
     pseudo: [
       '<span class="pseudo-fn">BFS</span>(start):',
@@ -22,7 +27,18 @@ export const GRAPH_INFO: Record<string, GraphAlgorithmInfo> = {
     ]
   },
   dfs: {
-    name: 'DFS',
+    name: 'Depth-First Search (DFS)',
+    category: 'Graph Traversal',
+    description:
+      'Explores as far as possible along each branch before backtracking using a LIFO recursion call stack. Visits deep into subtree ancestors before siblings.',
+    whenToUse:
+      'Cycle detection in directed graphs, topological sorting, solving maze paths, finding strongly connected components (Tarjan/Kosaraju).',
+    constraints: [
+      'Graph Size: |V| = 6 nodes (A-F), |E| = 8 edges',
+      'Stack Discipline: LIFO call stack determines traversal depth',
+      'Shortest Path: Does NOT guarantee shortest path',
+      'Backtracking: Reverses step when no unvisited neighbors exist',
+    ],
     complexity: { time: 'O(V + E)', space: 'O(V)', best: 'O(1)', worst: 'O(V+E)' },
     pseudo: [
       '<span class="pseudo-fn">DFS</span>(node):',
@@ -33,7 +49,18 @@ export const GRAPH_INFO: Record<string, GraphAlgorithmInfo> = {
     ]
   },
   dijkstra: {
-    name: 'Dijkstra',
+    name: "Dijkstra's Algorithm",
+    category: 'Shortest Path',
+    description:
+      'Greedy algorithm that determines the single-source shortest path to all vertices on a weighted graph with non-negative edge weights.',
+    whenToUse:
+      'GPS mapping routing systems (Google Maps / OpenStreetMap), network packet link-state routing protocols (OSPF, IS-IS).',
+    constraints: [
+      'Weight Constraint: Strictly non-negative edge weights (w >= 0)',
+      'Negative Cycles: Not supported (fails on negative weights)',
+      'Greedy Property: Tentative distances monotonically increase',
+      'Graph Size: |V| = 6 nodes (A-F), |E| = 8 edges',
+    ],
     complexity: { time: 'O((V+E) log V)', space: 'O(V)', best: 'O(E log V)', worst: 'O(V²)' },
     pseudo: [
       '<span class="pseudo-fn">Dijkstra</span>(src):',

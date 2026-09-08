@@ -1,11 +1,23 @@
-import { ComplexityInfo, TreeLayoutItem } from '@/types';
+import { ComplexityInfo, TreeLayoutItem, DataStructureInfo } from '@/types';
 
 export interface BSTInfo {
   complexity: ComplexityInfo;
   pseudo: string[];
 }
 
-export const BST_INFO: BSTInfo = {
+export const BST_INFO: DataStructureInfo = {
+  name: 'Binary Search Tree',
+  category: 'Hierarchical Tree',
+  description:
+    'Node-based binary tree data structure where each node satisfies the BST ordering invariant: all keys in the left subtree are smaller than the node, and all keys in the right subtree are larger.',
+  whenToUse:
+    'Dynamic set membership testing, ordered traversal (in-order produces sorted sequence), lookup tables with frequent insertions/deletions.',
+  constraints: [
+    'BST Invariant: left.val < node.val < right.val',
+    'Uniqueness: Duplicate keys are not permitted',
+    'Capacity: Max 31 nodes (depth <= 5) for visual clarity',
+    'Degenerate Case: Sorted insertion degrades lookup to O(n) linked list',
+  ],
   complexity: { insert: 'O(log n)', delete: 'O(log n)', search: 'O(log n)', space: 'O(n)', worst: 'O(n)' },
   pseudo: [
     '<span class="pseudo-fn">insert</span>(val):',

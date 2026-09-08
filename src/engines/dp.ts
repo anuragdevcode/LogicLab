@@ -5,6 +5,17 @@ const delta = (comparisons = 0, swaps = 0, accesses = 0): MetricsDelta => ({ com
 export const DP_ALGORITHMS: Record<string, AlgorithmMeta<DPStep>> = {
   lcs: {
     name: 'Longest Common Subsequence',
+    category: 'Dynamic Programming',
+    description:
+      'Finds the longest subsequence present in both strings in the same relative order using a 2D memoization table. Compares characters and transitions diagonally on matches.',
+    whenToUse:
+      'Diff tools (git diff), DNA sequence alignment in bioinformatics, plagiarism detection, spell check suggestion distance.',
+    constraints: [
+      'String Lengths: |S1|, |S2| <= 10 characters for table layout',
+      'Matching: Case-sensitive character equality (a == b)',
+      'Table Grid: 2D table size (m + 1) x (n + 1)',
+      'Subproblem Invariant: Optimal substructure & overlapping subproblems',
+    ],
     complexity: { time: 'O(m×n)', space: 'O(m×n)', best: 'O(m×n)', worst: 'O(m×n)' },
     pseudo: [
       '<span class="pseudo-fn">LCS</span>(s1, s2):',
@@ -59,6 +70,17 @@ export const DP_ALGORITHMS: Record<string, AlgorithmMeta<DPStep>> = {
 
   knapsack: {
     name: '0/1 Knapsack',
+    category: 'Dynamic Programming',
+    description:
+      'Selects a subset of items to maximize total value without exceeding the maximum carrying weight capacity W. Each item can be either taken or left (0 or 1 choice).',
+    whenToUse:
+      'Resource allocation, portfolio financial optimization, cargo payload loading under strict weight bounds.',
+    constraints: [
+      'Item Count: N <= 5 discrete weight-value pairs',
+      'Capacity: W <= 15 integer weight units',
+      '0/1 Constraint: Non-fractional (item taken at most once)',
+      'Domain: Weights w_i > 0 and values v_i > 0 must be integers',
+    ],
     complexity: { time: 'O(n×W)', space: 'O(n×W)', best: 'O(n×W)', worst: 'O(n×W)' },
     pseudo: [
       '<span class="pseudo-fn">Knapsack</span>(items, capacity):',

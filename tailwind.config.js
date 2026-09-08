@@ -8,9 +8,9 @@ export default {
     extend: {
       colors: {
         surface: {
-          DEFAULT: '#0b0f19',
-          secondary: '#0f172a',
-          tertiary: '#1e293b',
+          DEFAULT: '#090d16',
+          secondary: '#0e1424',
+          tertiary: '#1a2234',
         },
         accent: {
           DEFAULT: '#3b82f6',
@@ -22,15 +22,15 @@ export default {
         textSecondary: '#94a3b8',
       },
       fontFamily: {
-        body: ['Outfit', 'sans-serif'],
-        mono: ['"Space Mono"', '"Fira Code"', 'monospace'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       spacing: {
         'sidebar': '240px',
         'sidebar-collapsed': '64px',
-        'topbar': '56px',
-        'controls': '52px',
-        'metrics': '52px',
+        'topbar': '48px',
+        'controls': '48px',
+        'metrics': '36px',
       },
     },
   },

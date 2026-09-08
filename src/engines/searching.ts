@@ -12,6 +12,12 @@ export const SEARCHING_ALGORITHMS: Record<string, AlgorithmMeta<SearchStep>> = {
       'Sequentially checks every element in the array starting from index 0 until the target is found or the end of the array is reached.',
     whenToUse:
       'Unordered/unsorted datasets, very small collections (n < 16), or single-use searches where the overhead of pre-sorting exceeds O(n).',
+    constraints: [
+      'Array Order: Unconstrained (works on unsorted or sorted)',
+      'Array Size: 5 <= N <= 48',
+      'Element Values: Integers [10 .. 99]',
+      'Duplicates: Handled (returns first match)',
+    ],
     complexity: { best: 'O(1)', avg: 'O(n)', worst: 'O(n)', space: 'O(1)' },
     pseudo: [
       '<span class="pseudo-kw">for</span> i = 0 <span class="pseudo-kw">to</span> n-1:',
@@ -78,6 +84,12 @@ export const SEARCHING_ALGORITHMS: Record<string, AlgorithmMeta<SearchStep>> = {
       'Calculates the midpoint of a sorted search window. Compares the midpoint value to the target, discarding the half that cannot contain the target.',
     whenToUse:
       'Standard lookup on sorted arrays. Excellent logarithmic performance (only ~17 comparisons for 100,000 items). Requires pre-sorted array with random access.',
+    constraints: [
+      'Precondition: Strictly sorted ascending (arr[i] <= arr[i+1])',
+      'Array Size: 5 <= N <= 48',
+      'Random Access: Required O(1) index access',
+      'Termination Guard: Terminates when lo > hi',
+    ],
     complexity: { best: 'O(1)', avg: 'O(log n)', worst: 'O(log n)', space: 'O(1)' },
     pseudo: [
       'lo = 0, hi = n-1',
@@ -200,6 +212,12 @@ export const SEARCHING_ALGORITHMS: Record<string, AlgorithmMeta<SearchStep>> = {
       'Jumps ahead by fixed block size m = floor(sqrt(n)). Once an element greater than the target is reached, performs a linear scan backward within that block.',
     whenToUse:
       'When binary search jump-back costs are high or on systems where jumping backward is expensive (e.g. tape drives or skip-lists). Balances forward jumps with linear scan.',
+    constraints: [
+      'Precondition: Strictly sorted in ascending order',
+      'Optimal Block Step: m = floor(sqrt(n))',
+      'Array Size: 5 <= N <= 48',
+      'Search Mechanics: Forward stride jumps + backward linear scan',
+    ],
     complexity: { best: 'O(1)', avg: 'O(√n)', worst: 'O(√n)', space: 'O(1)' },
     pseudo: [
       'step = floor(sqrt(n)), prev = 0',
@@ -333,6 +351,12 @@ export const SEARCHING_ALGORITHMS: Record<string, AlgorithmMeta<SearchStep>> = {
       'Estimates the position of the target using a linear interpolation gradient formula based on values at the bounds, similar to searching a phone directory.',
     whenToUse:
       'Uniformly distributed sorted numbers (e.g. linear sensor readings or timestamps). Reaches O(log log n) average time, outperforming binary search on uniform data.',
+    constraints: [
+      'Precondition: Sorted AND uniformly distributed values',
+      'Value Domain: Numerical values with arithmetic subtraction',
+      'Worst Case Penalty: O(n) if dataset has exponential distribution',
+      'Probe Guard: Requires arr[lo] <= target <= arr[hi]',
+    ],
     complexity: { best: 'O(1)', avg: 'O(log log n)', worst: 'O(n)', space: 'O(1)' },
     pseudo: [
       'lo = 0, hi = n-1',
@@ -476,6 +500,12 @@ export const SEARCHING_ALGORITHMS: Record<string, AlgorithmMeta<SearchStep>> = {
       'Finds the range where the target resides by repeated doubling of indices (1, 2, 4, 8, ...), then performs a binary search within that bounded range.',
     whenToUse:
       'Unbounded or infinite arrays where the size is unknown beforehand, or when searching for targets located near the beginning of the list.',
+    constraints: [
+      'Precondition: Strictly sorted in ascending order',
+      'Unbounded Domain: Operates without knowing full array size upfront',
+      'Exponential Leap: Index strides double 1, 2, 4, 8, ... until arr[i] >= target',
+      'Binary Sub-Search: Bounded in window [i/2 .. min(i, n-1)]',
+    ],
     complexity: { best: 'O(1)', avg: 'O(log i)', worst: 'O(log n)', space: 'O(1)' },
     pseudo: [
       '<span class="pseudo-kw">if</span> arr[0] == target: <span class="pseudo-kw">return</span> 0',

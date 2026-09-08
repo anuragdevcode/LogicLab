@@ -134,6 +134,7 @@ export interface AlgorithmMeta<S = unknown> {
   stability?: boolean;
   inPlace?: boolean;
   whenToUse?: string;
+  constraints?: string[];
   generator?: (...args: any[]) => Generator<S>;
 }
 
@@ -149,8 +150,21 @@ export interface HeapLayoutResult {
 // ─── Data Structure Info ───
 export interface DataStructureInfo {
   name: string;
+  category?: string;
   complexity: ComplexityInfo;
   pseudo: string[];
+  description?: string;
+  whenToUse?: string;
+  constraints?: string[];
+}
+
+export type StackMode = 'stack' | 'queue' | 'circular_queue' | 'min_stack';
+
+export interface StackNarrative {
+  action: string;
+  reason: string;
+  badge: string;
+  isError?: boolean;
 }
 
 // ─── Module Configuration ───

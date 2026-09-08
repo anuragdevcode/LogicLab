@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import StackView from '@/components/visualizers/StackView';
+import StackControls from '@/components/controls/StackControls';
 import { STACK_INFO } from '@/engines';
 
 export default function StackPage() {
@@ -13,6 +14,7 @@ export default function StackPage() {
   const pause = useAppStore((s) => s.pause);
   const setModuleTitle = useAppStore((s) => s.setModuleTitle);
   const setAlgoList = useAppStore((s) => s.setAlgoList);
+  const setCustomControls = useAppStore((s) => s.setCustomControls);
 
   useEffect(() => {
     setModule('stack');
@@ -21,13 +23,19 @@ export default function StackPage() {
     setAlgoList([
       { id: 'stack', name: 'Stack (LIFO)' },
       { id: 'queue', name: 'Queue (FIFO)' },
+      { id: 'circular_queue', name: 'Circular Queue' },
+      { id: 'min_stack', name: 'Min Stack' },
     ]);
     resetStackQueueData();
     loadInfo(STACK_INFO);
     hidePlayControls(true);
     showGenerateButton(false);
+    setCustomControls(<StackControls />);
 
-    return () => { pause(); };
+    return () => {
+      pause();
+      setCustomControls(null);
+    };
   }, []);
 
   return <StackView />;

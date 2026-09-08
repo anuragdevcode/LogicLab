@@ -1,5 +1,14 @@
 import { create } from 'zustand';
-import { ModuleId, Step, Metrics, MetricsDelta, ComplexityInfo, AlgoListItem, AlgorithmMeta } from '@/types';
+import {
+  ModuleId,
+  Step,
+  Metrics,
+  MetricsDelta,
+  ComplexityInfo,
+  AlgoListItem,
+  AlgorithmMeta,
+  StackNarrative,
+} from '@/types';
 import { BST } from '@/engines/bst';
 import { Heap } from '@/engines/heap';
 import {
@@ -14,8 +23,13 @@ import {
   GRAPH_INFO,
   STACK_INFO,
   QUEUE_INFO,
+  CIRCULAR_QUEUE_INFO,
+  MIN_STACK_INFO,
+  STACK_CAPACITY,
+  STACK_DATA_STRUCTURES,
   HEAP_INFO,
 } from '@/engines';
+import { playFrequencyTone } from '@/components/canvas/CanvasRenderer';
 
 export interface AppState {
   // Navigation
@@ -76,13 +90,19 @@ export interface AppState {
   bst: BST | null;
   heap: Heap | null;
   heapType: 'min' | 'max';
-  stackData: (string | number)[];
-  queueData: (string | number)[];
+  stackData: number[];
+  minStackData: number[];
+  queueData: (number | null)[];
+  queueFront: number;
+  queueRear: number;
+  queueCount: number;
+  stackHighlightIdx: number | null;
+  stackNarrative: StackNarrative | null;
   llData: number[];
 
   // Data structure actions
-  stackAction: (action: string, value?: string) => void;
-  queueAction: (action: string, value?: string) => void;
+  stackAction: (action: string, value?: number | string) => void;
+  queueAction: (action: string, value?: number | string) => void;
   llAction: (action: string, value?: string) => void;
   setBst: (bst: BST | null) => void;
   setHeap: (heap: Heap | null) => void;
@@ -167,11 +187,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       get().loadInfo(DP_ALGORITHMS[algo]);
       get().buildSteps();
     } else if (currentMod === 'stack') {
-      if (algo === 'queue') {
-        get().loadInfo(QUEUE_INFO);
+      if (STACK_DATA_STRUCTURES[algo]) {
+        get().loadInfo(STACK_DATA_STRUCTURES[algo]);
       } else {
         get().loadInfo(STACK_INFO);
       }
+      get().resetStackQueueData();
     } else if (currentMod === 'heap' && HEAP_INFO[algo]) {
       get().loadInfo(HEAP_INFO[algo]);
     }
@@ -293,35 +314,471 @@ export const useAppStore = create<AppState>((set, get) => ({
   bst: null,
   heap: null,
   heapType: 'min',
-  stackData: [],
-  queueData: [],
+  stackData: [24, 45, 68],
+  minStackData: [24, 24, 24],
+  queueData: [15, 32, 48, null, null, null, null, null],
+  queueFront: 0,
+  queueRear: 2,
+  queueCount: 3,
+  stackHighlightIdx: null,
+  stackNarrative: {
+    action: 'ready',
+    badge: 'READY',
+    reason: 'Initialized memory slots. Ready for operations.',
+  },
   llData: [],
 
   // Data structure actions
   stackAction: (action, value) => {
-    set((state) => {
-      const data = [...state.stackData];
-      if (action === 'push' && value !== undefined) {
-        const num = Number(value);
-        data.push(isNaN(num) ? value : num);
-      } else if (action === 'pop') {
-        data.pop();
+    const state = get();
+    const isMinStack = state.algo === 'min_stack';
+
+    if (action === 'push') {
+      const num =
+        value !== undefined && String(value).trim() !== ''
+          ? Number(value)
+          : Math.floor(Math.random() * 85) + 12;
+
+      if (!Number.isFinite(num)) {
+        set({ status: 'Enter a valid number to push', statusColor: '#f43f5e' });
+        return;
       }
-      // peek is just visual highlight, no state change
-      return { stackData: data };
-    });
+
+      if (state.stackData.length >= STACK_CAPACITY) {
+        if (state.soundEnabled) playFrequencyTone(15, 100, 160);
+        set({
+          status: `Stack Overflow: Exceeded maximum capacity (${STACK_CAPACITY})!`,
+          statusColor: '#f43f5e',
+          stackNarrative: {
+            action: 'overflow',
+            badge: 'OVERFLOW',
+            reason: `Stack Overflow: Cannot push ${num}. Memory limit of ${STACK_CAPACITY} slots is full (top == ${STACK_CAPACITY - 1}).`,
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      const newStack = [...state.stackData, num];
+      const newMinStack =
+        state.minStackData.length === 0
+          ? [num]
+          : [...state.minStackData, Math.min(num, state.minStackData[state.minStackData.length - 1])];
+
+      if (state.soundEnabled) playFrequencyTone(num, 100, 75);
+
+      set((s) => ({
+        stackData: newStack,
+        minStackData: newMinStack,
+        stackHighlightIdx: newStack.length - 1,
+        metrics: { ...s.metrics, accesses: s.metrics.accesses + 1 },
+        status: `Pushed ${num} onto TOP [slot ${newStack.length - 1}]`,
+        statusColor: '#10b981',
+        stackNarrative: {
+          action: 'push',
+          badge: 'PUSH',
+          reason: `Pushed value ${num} onto TOP at slot [${newStack.length - 1}]. Stack depth is now ${newStack.length}/${STACK_CAPACITY}.${
+            isMinStack ? ` Current minimum: ${newMinStack[newMinStack.length - 1]}.` : ''
+          }`,
+        },
+      }));
+
+      setTimeout(() => {
+        if (get().stackHighlightIdx === newStack.length - 1) {
+          set({ stackHighlightIdx: null });
+        }
+      }, 900);
+    } else if (action === 'pop') {
+      if (state.stackData.length === 0) {
+        if (state.soundEnabled) playFrequencyTone(10, 100, 160);
+        set({
+          status: 'Stack Underflow: Cannot pop from an empty stack!',
+          statusColor: '#f43f5e',
+          stackNarrative: {
+            action: 'underflow',
+            badge: 'UNDERFLOW',
+            reason: 'Stack Underflow: Attempted to pop when stack depth is 0 (top == -1).',
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      const poppedVal = state.stackData[state.stackData.length - 1];
+      const poppedIdx = state.stackData.length - 1;
+      const newStack = state.stackData.slice(0, -1);
+      const newMinStack = state.minStackData.slice(0, -1);
+
+      if (state.soundEnabled) playFrequencyTone(poppedVal, 100, 90);
+
+      set((s) => ({
+        stackData: newStack,
+        minStackData: newMinStack,
+        stackHighlightIdx: null,
+        metrics: { ...s.metrics, swaps: s.metrics.swaps + 1 },
+        status: `Popped ${poppedVal} from TOP [was slot ${poppedIdx}]`,
+        statusColor: '#f59e0b',
+        stackNarrative: {
+          action: 'pop',
+          badge: 'POP',
+          reason: `Popped value ${poppedVal} from TOP. New TOP is ${
+            newStack.length > 0 ? `${newStack[newStack.length - 1]} at [${newStack.length - 1}]` : 'empty (top == -1)'
+          }.${isMinStack && newMinStack.length > 0 ? ` Minimum is now: ${newMinStack[newMinStack.length - 1]}.` : ''}`,
+        },
+      }));
+    } else if (action === 'peek') {
+      if (state.stackData.length === 0) {
+        set({
+          status: 'Stack is empty: nothing to peek',
+          statusColor: '#f43f5e',
+          stackNarrative: {
+            action: 'peek_empty',
+            badge: 'EMPTY',
+            reason: 'Peek failed: stack has no elements (top == -1).',
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      const topIdx = state.stackData.length - 1;
+      const topVal = state.stackData[topIdx];
+
+      if (state.soundEnabled) playFrequencyTone(topVal, 100, 120);
+
+      set((s) => ({
+        stackHighlightIdx: topIdx,
+        metrics: { ...s.metrics, comparisons: s.metrics.comparisons + 1 },
+        status: `Peek: TOP element is ${topVal} at slot [${topIdx}]`,
+        statusColor: '#3b82f6',
+        stackNarrative: {
+          action: 'peek',
+          badge: 'PEEK',
+          reason: `Inspected TOP element arr[${topIdx}] = ${topVal} in O(1) time without modifying stack state.${
+            isMinStack ? ` Current minimum: ${state.minStackData[state.minStackData.length - 1]}.` : ''
+          }`,
+        },
+      }));
+
+      setTimeout(() => {
+        if (get().stackHighlightIdx === topIdx) {
+          set({ stackHighlightIdx: null });
+        }
+      }, 1200);
+    } else if (action === 'clear') {
+      set({
+        stackData: [],
+        minStackData: [],
+        stackHighlightIdx: null,
+        status: 'Stack cleared',
+        statusColor: '#94a3b8',
+        stackNarrative: {
+          action: 'clear',
+          badge: 'CLEAR',
+          reason: 'Cleared all elements from stack memory. top reset to -1.',
+        },
+      });
+    } else if (action === 'fill') {
+      const sample = [18, 35, 52, 79];
+      let minArr: number[] = [];
+      sample.forEach((v) => {
+        minArr.push(minArr.length === 0 ? v : Math.min(v, minArr[minArr.length - 1]));
+      });
+      set((s) => ({
+        stackData: sample,
+        minStackData: minArr,
+        stackHighlightIdx: null,
+        metrics: { ...s.metrics, accesses: s.metrics.accesses + 4 },
+        status: 'Populated stack with 4 sample elements',
+        statusColor: '#10b981',
+        stackNarrative: {
+          action: 'sample',
+          badge: 'SAMPLE',
+          reason: 'Populated stack with 4 sample values [18, 35, 52, 79].',
+        },
+      }));
+    } else if (action === 'fillMax') {
+      const sample = [12, 24, 36, 48, 60, 72, 84, 96];
+      let minArr: number[] = [];
+      sample.forEach((v) => {
+        minArr.push(minArr.length === 0 ? v : Math.min(v, minArr[minArr.length - 1]));
+      });
+      set((s) => ({
+        stackData: sample,
+        minStackData: minArr,
+        stackHighlightIdx: null,
+        metrics: { ...s.metrics, accesses: s.metrics.accesses + 8 },
+        status: 'Filled stack to maximum capacity (8 elements)',
+        statusColor: '#3b82f6',
+        stackNarrative: {
+          action: 'fillMax',
+          badge: 'CAPACITY',
+          reason: 'Filled stack to maximum capacity (8 elements). Next push will demonstrate Overflow.',
+        },
+      }));
+    }
   },
+
   queueAction: (action, value) => {
-    set((state) => {
-      const data = [...state.queueData];
-      if (action === 'enqueue' && value !== undefined) {
-        const num = Number(value);
-        data.push(isNaN(num) ? value : num);
-      } else if (action === 'dequeue') {
-        data.shift();
+    const state = get();
+    const isCircular = state.algo === 'circular_queue';
+
+    if (action === 'enqueue') {
+      const num =
+        value !== undefined && String(value).trim() !== ''
+          ? Number(value)
+          : Math.floor(Math.random() * 85) + 12;
+
+      if (!Number.isFinite(num)) {
+        set({ status: 'Enter a valid number to enqueue', statusColor: '#f43f5e' });
+        return;
       }
-      return { queueData: data };
-    });
+
+      if (isCircular) {
+        if (state.queueCount >= STACK_CAPACITY) {
+          if (state.soundEnabled) playFrequencyTone(15, 100, 160);
+          set({
+            status: 'Circular Queue Overflow: Ring buffer is full (8/8)!',
+            statusColor: '#f43f5e',
+            stackNarrative: {
+              action: 'overflow',
+              badge: 'OVERFLOW',
+              reason: 'Circular Queue Overflow: (rear + 1) % 8 == front. Buffer is completely occupied.',
+              isError: true,
+            },
+          });
+          return;
+        }
+
+        const newRear = state.queueFront === -1 ? 0 : (state.queueRear + 1) % STACK_CAPACITY;
+        const newFront = state.queueFront === -1 ? 0 : state.queueFront;
+        const nextData = [...state.queueData];
+        nextData[newRear] = num;
+        const nextCount = state.queueCount + 1;
+
+        if (state.soundEnabled) playFrequencyTone(num, 100, 75);
+
+        set((s) => ({
+          queueData: nextData,
+          queueFront: newFront,
+          queueRear: newRear,
+          queueCount: nextCount,
+          stackHighlightIdx: newRear,
+          metrics: { ...s.metrics, accesses: s.metrics.accesses + 1 },
+          status: `Enqueued ${num} at REAR [slot ${newRear}] via (rear+1)%8`,
+          statusColor: '#10b981',
+          stackNarrative: {
+            action: 'enqueue',
+            badge: 'ENQUEUE',
+            reason: `Enqueued ${num} at circular slot [${newRear}] via (rear + 1) % 8. Occupancy: ${nextCount}/${STACK_CAPACITY}.`,
+          },
+        }));
+
+        setTimeout(() => {
+          if (get().stackHighlightIdx === newRear) {
+            set({ stackHighlightIdx: null });
+          }
+        }, 900);
+      } else {
+        // Linear Queue
+        if (state.queueRear >= STACK_CAPACITY - 1) {
+          if (state.soundEnabled) playFrequencyTone(15, 100, 160);
+          const isFalseOverflow = state.queueFront > 0;
+          set({
+            status: isFalseOverflow
+              ? 'Linear Queue False Overflow: rear at limit (7)'
+              : 'Queue Overflow: Capacity limit reached (8/8)!',
+            statusColor: '#f43f5e',
+            stackNarrative: {
+              action: 'overflow',
+              badge: 'OVERFLOW',
+              reason: isFalseOverflow
+                ? `False Overflow! rear == 7. Even though slots [0..${state.queueFront - 1}] are freed, linear queues cannot wrap. Switch to Circular Queue to reuse freed memory!`
+                : 'Queue Overflow: Cannot enqueue. Memory capacity exhausted (rear == 7).',
+              isError: true,
+            },
+          });
+          return;
+        }
+
+        const newRear = state.queueRear + 1;
+        const newFront = state.queueFront === -1 ? 0 : state.queueFront;
+        const nextData = [...state.queueData];
+        nextData[newRear] = num;
+        const nextCount = state.queueCount + 1;
+
+        if (state.soundEnabled) playFrequencyTone(num, 100, 75);
+
+        set((s) => ({
+          queueData: nextData,
+          queueFront: newFront,
+          queueRear: newRear,
+          queueCount: nextCount,
+          stackHighlightIdx: newRear,
+          metrics: { ...s.metrics, accesses: s.metrics.accesses + 1 },
+          status: `Enqueued ${num} at REAR [slot ${newRear}]`,
+          statusColor: '#10b981',
+          stackNarrative: {
+            action: 'enqueue',
+            badge: 'ENQUEUE',
+            reason: `Enqueued ${num} at rear slot [${newRear}]. FRONT=[${newFront}], REAR=[${newRear}]. Occupancy: ${nextCount}/${STACK_CAPACITY}.`,
+          },
+        }));
+
+        setTimeout(() => {
+          if (get().stackHighlightIdx === newRear) {
+            set({ stackHighlightIdx: null });
+          }
+        }, 900);
+      }
+    } else if (action === 'dequeue') {
+      if (state.queueCount === 0 || state.queueFront === -1) {
+        if (state.soundEnabled) playFrequencyTone(10, 100, 160);
+        set({
+          status: 'Queue Underflow: Cannot dequeue from an empty queue!',
+          statusColor: '#f43f5e',
+          stackNarrative: {
+            action: 'underflow',
+            badge: 'UNDERFLOW',
+            reason: 'Queue Underflow: Attempted dequeue when queue occupancy is 0 (front == -1).',
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      const frontIdx = state.queueFront;
+      const val = state.queueData[frontIdx];
+      const nextData = [...state.queueData];
+      nextData[frontIdx] = null;
+      const nextCount = state.queueCount - 1;
+
+      let newFront = -1;
+      let newRear = state.queueRear;
+
+      if (isCircular) {
+        if (state.queueFront === state.queueRear) {
+          newFront = -1;
+          newRear = -1;
+        } else {
+          newFront = (state.queueFront + 1) % STACK_CAPACITY;
+        }
+      } else {
+        newFront = frontIdx + 1;
+        if (newFront > newRear) {
+          newFront = -1;
+          newRear = -1;
+        }
+      }
+
+      if (state.soundEnabled && val !== null) playFrequencyTone(val, 100, 90);
+
+      set((s) => ({
+        queueData: nextData,
+        queueFront: newFront,
+        queueRear: newRear,
+        queueCount: nextCount,
+        stackHighlightIdx: null,
+        metrics: { ...s.metrics, swaps: s.metrics.swaps + 1 },
+        status: `Dequeued ${val} from FRONT [was slot ${frontIdx}]`,
+        statusColor: '#f59e0b',
+        stackNarrative: {
+          action: 'dequeue',
+          badge: 'DEQUEUE',
+          reason: `Dequeued value ${val} from FRONT at slot [${frontIdx}]. FRONT advanced to ${
+            newFront >= 0 ? `[${newFront}]` : 'empty (-1)'
+          }.`,
+        },
+      }));
+    } else if (action === 'front') {
+      if (state.queueCount === 0 || state.queueFront === -1) {
+        set({
+          status: 'Queue is empty: nothing at FRONT',
+          statusColor: '#f43f5e',
+          stackNarrative: {
+            action: 'front_empty',
+            badge: 'EMPTY',
+            reason: 'Front inspection failed: queue has 0 elements.',
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      const frontIdx = state.queueFront;
+      const frontVal = state.queueData[frontIdx];
+
+      if (state.soundEnabled && frontVal !== null) playFrequencyTone(frontVal, 100, 120);
+
+      set((s) => ({
+        stackHighlightIdx: frontIdx,
+        metrics: { ...s.metrics, comparisons: s.metrics.comparisons + 1 },
+        status: `FRONT element is ${frontVal} at slot [${frontIdx}]`,
+        statusColor: '#3b82f6',
+        stackNarrative: {
+          action: 'front',
+          badge: 'FRONT',
+          reason: `Inspected FRONT pointer element arr[${frontIdx}] = ${frontVal} in O(1) time without dequeuing.`,
+        },
+      }));
+
+      setTimeout(() => {
+        if (get().stackHighlightIdx === frontIdx) {
+          set({ stackHighlightIdx: null });
+        }
+      }, 1200);
+    } else if (action === 'clear') {
+      set({
+        queueData: Array(STACK_CAPACITY).fill(null),
+        queueFront: -1,
+        queueRear: -1,
+        queueCount: 0,
+        stackHighlightIdx: null,
+        status: 'Queue cleared',
+        statusColor: '#94a3b8',
+        stackNarrative: {
+          action: 'clear',
+          badge: 'CLEAR',
+          reason: 'Cleared all queue slots. FRONT and REAR reset to -1.',
+        },
+      });
+    } else if (action === 'fill') {
+      const sample = [15, 32, 48];
+      const data: (number | null)[] = Array(STACK_CAPACITY).fill(null);
+      sample.forEach((v, i) => (data[i] = v));
+      set((s) => ({
+        queueData: data,
+        queueFront: 0,
+        queueRear: 2,
+        queueCount: 3,
+        stackHighlightIdx: null,
+        metrics: { ...s.metrics, accesses: s.metrics.accesses + 3 },
+        status: 'Populated queue with 3 sample elements',
+        statusColor: '#10b981',
+        stackNarrative: {
+          action: 'sample',
+          badge: 'SAMPLE',
+          reason: 'Populated queue with 3 sample items [15, 32, 48]. FRONT=[0], REAR=[2].',
+        },
+      }));
+    } else if (action === 'fillMax') {
+      const sample = [11, 22, 33, 44, 55, 66, 77, 88];
+      set((s) => ({
+        queueData: [...sample],
+        queueFront: 0,
+        queueRear: 7,
+        queueCount: 8,
+        stackHighlightIdx: null,
+        metrics: { ...s.metrics, accesses: s.metrics.accesses + 8 },
+        status: 'Filled queue to maximum capacity (8 elements)',
+        statusColor: '#3b82f6',
+        stackNarrative: {
+          action: 'fillMax',
+          badge: 'CAPACITY',
+          reason: 'Filled queue to capacity (8 elements). Next enqueue will demonstrate Overflow.',
+        },
+      }));
+    }
   },
   llAction: (action, value) => {
     set((state) => {
@@ -400,7 +857,30 @@ export const useAppStore = create<AppState>((set, get) => ({
   initDP: () => {
     // DP uses default config, no initialization needed
   },
-  resetStackQueueData: () => set({ stackData: [], queueData: [] }),
+  resetStackQueueData: () => {
+    const isQueue = get().algo === 'queue' || get().algo === 'circular_queue';
+    set({
+      stackData: isQueue ? [] : [24, 45, 68],
+      minStackData: isQueue ? [] : [24, 24, 24],
+      queueData: isQueue
+        ? [15, 32, 48, null, null, null, null, null]
+        : Array(STACK_CAPACITY).fill(null),
+      queueFront: isQueue ? 0 : -1,
+      queueRear: isQueue ? 2 : -1,
+      queueCount: isQueue ? 3 : 0,
+      stackHighlightIdx: null,
+      metrics: { comparisons: 0, swaps: 0, accesses: 3 },
+      status: 'Ready',
+      statusColor: '',
+      stackNarrative: {
+        action: 'ready',
+        badge: 'READY',
+        reason: isQueue
+          ? 'Initialized queue memory slots. FRONT=[0], REAR=[2]. Ready for operations.'
+          : 'Initialized stack memory slots. TOP=[2]. Ready for operations.',
+      },
+    });
+  },
   resetLinkedListData: () => set({ llData: [] }),
 
   // Build steps from current module/algo/data

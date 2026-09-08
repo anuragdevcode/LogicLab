@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 import { Heap } from '@/engines/heap';
 import { HEAP_INFO } from '@/engines';
@@ -9,7 +10,6 @@ const HeapControls: React.FC = () => {
   const heapType = useAppStore((s) => s.heapType);
   const setHeapType = useAppStore((s) => s.setHeapType);
   const loadInfo = useAppStore((s) => s.loadInfo);
-  const algo = useAppStore((s) => s.algo);
   const setAlgo = useAppStore((s) => s.setAlgo);
   const [val, setVal] = useState('');
 
@@ -35,24 +35,35 @@ const HeapControls: React.FC = () => {
   };
 
   return (
-    <div className="viz-controls-overlay flex-wrap justify-center">
-      <div className="flex items-center bg-surface rounded-md p-0.5 border border-surface-tertiary mr-2">
-        <button
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18 }}
+      className="viz-controls-overlay flex-wrap justify-center shadow-md"
+    >
+      <div className="flex items-center bg-surface rounded-md p-0.5 border border-white/10 mr-1">
+        <motion.button
+          whileTap={{ scale: 0.94 }}
           className={`px-3 py-1 text-xs rounded-sm font-medium transition-colors ${
-            heapType === 'min' ? 'bg-surface-tertiary text-textPrimary' : 'text-textSecondary hover:text-textPrimary'
+            heapType === 'min'
+              ? 'bg-accent text-white font-semibold shadow-sm'
+              : 'text-textSecondary hover:text-textPrimary'
           }`}
           onClick={() => switchType('min')}
         >
           Min
-        </button>
-        <button
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.94 }}
           className={`px-3 py-1 text-xs rounded-sm font-medium transition-colors ${
-            heapType === 'max' ? 'bg-surface-tertiary text-textPrimary' : 'text-textSecondary hover:text-textPrimary'
+            heapType === 'max'
+              ? 'bg-accent text-white font-semibold shadow-sm'
+              : 'text-textSecondary hover:text-textPrimary'
           }`}
           onClick={() => switchType('max')}
         >
           Max
-        </button>
+        </motion.button>
       </div>
 
       <input
@@ -63,13 +74,21 @@ const HeapControls: React.FC = () => {
         onChange={(e) => setVal(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleInsert()}
       />
-      <button className="btn-primary text-sm py-1.5 px-3" onClick={handleInsert}>
+      <motion.button
+        whileTap={{ scale: 0.94 }}
+        className="btn-primary text-xs py-1.5 px-3 font-medium"
+        onClick={handleInsert}
+      >
         Insert
-      </button>
-      <button className="btn-secondary text-sm py-1.5 px-3 text-accent-amber" onClick={handleExtract}>
+      </motion.button>
+      <motion.button
+        whileTap={{ scale: 0.94 }}
+        className="btn-secondary text-xs py-1.5 px-3 text-amber-400 hover:text-amber-300 font-medium"
+        onClick={handleExtract}
+      >
         Extract
-      </button>
-    </div>
+      </motion.button>
+    </motion.div>
   );
 };
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 import { DPStep } from '@/types';
 
@@ -33,7 +34,7 @@ const DPTableView: React.FC = () => {
     return (
       <div className="overflow-auto max-w-full max-h-full p-4">
         <div
-          className="inline-grid gap-px bg-surface-tertiary border border-surface-tertiary rounded-lg overflow-hidden"
+          className="inline-grid gap-px bg-white/10 border border-white/10 rounded-lg overflow-hidden shadow-sm"
           style={{ gridTemplateColumns: `repeat(${cols.length + 1}, minmax(0, 1fr))` }}
         >
           <div className="dp-cell header border-none" />
@@ -47,12 +48,15 @@ const DPTableView: React.FC = () => {
                 const isActive = active && active[0] === i && active[1] === j;
                 const isDone = done && i === dp.length - 1 && j === row.length - 1;
                 return (
-                  <div
+                  <motion.div
                     key={`${i}-${j}`}
-                    className={`dp-cell border-none ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}`}
+                    initial={isActive ? { scale: 0.85 } : false}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+                    className={`dp-cell border-none font-mono text-xs ${isActive ? 'active font-bold text-white' : ''} ${isDone ? 'done font-bold' : ''}`}
                   >
                     {val}
-                  </div>
+                  </motion.div>
                 );
               })}
             </React.Fragment>
@@ -68,7 +72,7 @@ const DPTableView: React.FC = () => {
     return (
       <div className="overflow-auto max-w-full max-h-full p-4">
         <div
-          className="inline-grid gap-px bg-surface-tertiary border border-surface-tertiary rounded-lg overflow-hidden"
+          className="inline-grid gap-px bg-white/10 border border-white/10 rounded-lg overflow-hidden shadow-sm"
           style={{ gridTemplateColumns: `repeat(${capacity + 2}, minmax(0, 1fr))` }}
         >
           <div className="dp-cell header border-none text-xs">i \ w</div>
@@ -84,12 +88,15 @@ const DPTableView: React.FC = () => {
                 const isActive = active && active[0] === i && active[1] === j;
                 const isDone = done && i === dp.length - 1 && j === row.length - 1;
                 return (
-                  <div
+                  <motion.div
                     key={`${i}-${j}`}
-                    className={`dp-cell border-none ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}`}
+                    initial={isActive ? { scale: 0.85 } : false}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+                    className={`dp-cell border-none font-mono text-xs ${isActive ? 'active font-bold text-white' : ''} ${isDone ? 'done font-bold' : ''}`}
                   >
                     {val}
-                  </div>
+                  </motion.div>
                 );
               })}
             </React.Fragment>
@@ -100,14 +107,23 @@ const DPTableView: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center relative">
+    <div className="w-full h-full flex flex-col items-center justify-center relative p-4">
       {dpAlgo === 'lcs' ? renderLCSTable() : renderKnapsackTable()}
 
-      {explain && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-surface-secondary/90 backdrop-blur-sm border border-surface-tertiary text-textPrimary px-4 py-2 rounded-lg text-sm max-w-lg text-center shadow-lg">
-          {explain}
-        </div>
-      )}
+      <AnimatePresence>
+        {explain && (
+          <motion.div
+            key={explain}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.15 }}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-surface-secondary/95 backdrop-blur-md border border-white/10 text-textPrimary px-4 py-2 rounded-full text-xs font-mono max-w-lg text-center shadow-lg"
+          >
+            {explain}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

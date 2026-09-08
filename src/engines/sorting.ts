@@ -12,6 +12,12 @@ export const SORTING_ALGORITHMS: Record<string, AlgorithmMeta<SortStep>> = {
       'Iteratively steps through the list, compares adjacent elements, and swaps them if they are in the wrong order. Larger elements "bubble" to the end of the array.',
     whenToUse:
       'Educational purposes, detecting whether a list is already sorted in linear O(n) time, or for very small collections with minimal memory overhead.',
+    constraints: [
+      'Input Array Size: 5 <= N <= 48 elements',
+      'Element Values: Integers [10 .. 99]',
+      'Stability: Stable (preserves original order of equals)',
+      'In-Place: Auxiliary space O(1) without memory allocation',
+    ],
     complexity: { best: 'O(n)', avg: 'O(n²)', worst: 'O(n²)', space: 'O(1)' },
     pseudo: [
       '<span class="pseudo-kw">for</span> i = 0 <span class="pseudo-kw">to</span> n-1:',
@@ -81,6 +87,12 @@ export const SORTING_ALGORITHMS: Record<string, AlgorithmMeta<SortStep>> = {
       'Divides the array into sorted prefix and unsorted suffix. Repeatedly finds the smallest element from the unsorted suffix and swaps it with the first unsorted element.',
     whenToUse:
       'When writing to memory is significantly more expensive than reading (Selection sort performs at most O(n) swaps overall).',
+    constraints: [
+      'Input Array Size: 5 <= N <= 48 elements',
+      'Element Values: Integers [10 .. 99]',
+      'Stability: Unstable (long range swaps disrupt relative order)',
+      'Comparisons Invariant: Always strictly n*(n-1)/2 comparisons',
+    ],
     complexity: { best: 'O(n²)', avg: 'O(n²)', worst: 'O(n²)', space: 'O(1)' },
     pseudo: [
       '<span class="pseudo-kw">for</span> i = 0 <span class="pseudo-kw">to</span> n-1:',
@@ -182,6 +194,12 @@ export const SORTING_ALGORITHMS: Record<string, AlgorithmMeta<SortStep>> = {
       'Builds the sorted array one item at a time by picking the next element and shifting larger sorted elements rightward to insert it into its correct location.',
     whenToUse:
       'Outstanding for small datasets (n < 20) or data that is already substantially sorted (achieving near-linear O(n) runtime). Often used as the base case in hybrid algorithms like TimSort.',
+    constraints: [
+      'Input Array Size: 5 <= N <= 48 elements',
+      'Adaptive Invariant: Strictly O(n) runtime if array is nearly sorted',
+      'Stability: Stable (equal keys maintain order)',
+      'In-Place: Auxiliary Space O(1)',
+    ],
     complexity: { best: 'O(n)', avg: 'O(n²)', worst: 'O(n²)', space: 'O(1)' },
     pseudo: [
       '<span class="pseudo-kw">for</span> i = 1 <span class="pseudo-kw">to</span> n:',
@@ -284,6 +302,12 @@ export const SORTING_ALGORITHMS: Record<string, AlgorithmMeta<SortStep>> = {
       'Divide-and-conquer algorithm that recursively divides the array into halves until single-element subarrays, then merges the sorted halves into a combined sorted sequence.',
     whenToUse:
       'When guaranteed O(n log n) runtime and stability are required (e.g. sorting linked lists, external sorting where random access is slow, or database record indexes).',
+    constraints: [
+      'Input Array Size: 5 <= N <= 48 elements',
+      'Auxiliary Space: Strictly O(n) auxiliary buffer array required',
+      'Call Stack: O(log n) recursion depth',
+      'Stability: Stable (left subarray favored on ties)',
+    ],
     complexity: { best: 'O(n log n)', avg: 'O(n log n)', worst: 'O(n log n)', space: 'O(n)' },
     pseudo: [
       '<span class="pseudo-fn">mergeSort</span>(arr, l, r):',
@@ -438,6 +462,12 @@ export const SORTING_ALGORITHMS: Record<string, AlgorithmMeta<SortStep>> = {
       'Picks a pivot element and partitions the array such that elements smaller than the pivot precede it, and larger elements follow it. Recursively sorts the partitions.',
     whenToUse:
       'General-purpose in-memory sorting. With low constant factors and cache locality, it is often the fastest practical sorting algorithm in practice.',
+    constraints: [
+      'Input Array Size: 5 <= N <= 48 elements',
+      'Partition Scheme: Lomuto partition (last element as pivot)',
+      'Stability: Unstable',
+      'Worst Case Penalty: O(n²) when array is already sorted with bad pivot',
+    ],
     complexity: { best: 'O(n log n)', avg: 'O(n log n)', worst: 'O(n²)', space: 'O(log n)' },
     pseudo: [
       '<span class="pseudo-fn">quickSort</span>(arr, low, high):',
@@ -563,6 +593,12 @@ export const SORTING_ALGORITHMS: Record<string, AlgorithmMeta<SortStep>> = {
       'Generalization of Insertion Sort that allows the exchange of items that are far apart. Sorts pairs of elements separated by a diminishing gap sequence.',
     whenToUse:
       'Medium-sized arrays where recursion overhead of QuickSort/MergeSort is undesirable and code footprint must remain small with zero extra heap allocations.',
+    constraints: [
+      'Input Array Size: 5 <= N <= 48 elements',
+      'Gap Sequence: Halving sequence gap = floor(gap / 2)',
+      'Stability: Unstable (distant gap swaps skip identical items)',
+      'In-Place: Auxiliary Space O(1)',
+    ],
     complexity: { best: 'O(n log n)', avg: 'O(n^(4/3))', worst: 'O(n²)', space: 'O(1)' },
     pseudo: [
       '<span class="pseudo-kw">for</span> gap = floor(n/2) <span class="pseudo-kw">down to</span> 1:',
@@ -671,6 +707,12 @@ export const SORTING_ALGORITHMS: Record<string, AlgorithmMeta<SortStep>> = {
       'Builds a Max-Heap from the array in O(n) time, then repeatedly extracts the maximum root element to the end of the array and heapifies the remaining structure.',
     whenToUse:
       'Systems requiring strict worst-case O(n log n) time guarantees with constant O(1) auxiliary space (e.g. real-time embedded systems or Linux kernel sorting).',
+    constraints: [
+      'Input Array Size: 5 <= N <= 48 elements',
+      'Heap Tree Structure: Complete Binary Tree in 0-indexed array',
+      'Stability: Unstable (root swaps bypass sibling order)',
+      'In-Place: Strictly Auxiliary Space O(1)',
+    ],
     complexity: { best: 'O(n log n)', avg: 'O(n log n)', worst: 'O(n log n)', space: 'O(1)' },
     pseudo: [
       '<span class="pseudo-fn">heapSort</span>(arr):',
@@ -788,6 +830,12 @@ export const SORTING_ALGORITHMS: Record<string, AlgorithmMeta<SortStep>> = {
       'Bidirectional variation of Bubble Sort. Alternates passes left-to-right (bubbling the largest item to the end) and right-to-left (bubbling the smallest item to the beginning). Eliminates turtles (small values near the end).',
     whenToUse:
       'Useful over standard Bubble Sort when small values are concentrated near the end of the array, preventing slow one-step-at-a-time propagation.',
+    constraints: [
+      'Input Array Size: 5 <= N <= 48 elements',
+      'Bidirectional Scan: Alternating forward and backward passes',
+      'Stability: Stable (equal items maintain relative order)',
+      'In-Place: Auxiliary Space O(1)',
+    ],
     complexity: { best: 'O(n)', avg: 'O(n²)', worst: 'O(n²)', space: 'O(1)' },
     pseudo: [
       '<span class="pseudo-kw">do</span>:',

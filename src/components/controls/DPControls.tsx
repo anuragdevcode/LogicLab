@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 
 const DPControls: React.FC = () => {
@@ -52,13 +53,15 @@ const DPControls: React.FC = () => {
       <>
         <label className="flex items-center gap-2 text-sm text-textSecondary font-medium">
           <span>String A</span>
-          <input type="text" className="ctrl-input w-24 uppercase" maxLength={8} value={s1} onChange={(e) => setS1(e.target.value)} />
+          <input type="text" className="ctrl-input w-24 uppercase font-mono text-xs" maxLength={8} value={s1} onChange={(e) => setS1(e.target.value)} />
         </label>
         <label className="flex items-center gap-2 text-sm text-textSecondary font-medium">
           <span>String B</span>
-          <input type="text" className="ctrl-input w-24 uppercase" maxLength={8} value={s2} onChange={(e) => setS2(e.target.value)} />
+          <input type="text" className="ctrl-input w-24 uppercase font-mono text-xs" maxLength={8} value={s2} onChange={(e) => setS2(e.target.value)} />
         </label>
-        <button className="btn-secondary text-sm" onClick={handleApplyLCS}>Use Strings</button>
+        <motion.button whileTap={{ scale: 0.94 }} className="btn-secondary text-xs py-1 px-3" onClick={handleApplyLCS}>
+          Use Strings
+        </motion.button>
       </>
     );
   }
@@ -67,13 +70,15 @@ const DPControls: React.FC = () => {
     <>
       <label className="flex items-center gap-2 text-sm text-textSecondary font-medium">
         <span>Items</span>
-        <input type="text" className="ctrl-input w-48" placeholder="weight:value" value={items} onChange={(e) => setItems(e.target.value)} />
+        <input type="text" className="ctrl-input w-48 font-mono text-xs" placeholder="weight:value" value={items} onChange={(e) => setItems(e.target.value)} />
       </label>
       <label className="flex items-center gap-2 text-sm text-textSecondary font-medium">
         <span>Capacity</span>
-        <input type="number" className="ctrl-input w-16" min="0" max="12" value={capacity} onChange={(e) => setCapacity(e.target.value)} />
+        <input type="number" className="ctrl-input w-16 font-mono text-xs" min="0" max="12" value={capacity} onChange={(e) => setCapacity(e.target.value)} />
       </label>
-      <button className="btn-secondary text-sm" onClick={handleApplyKnapsack}>Use Items</button>
+      <motion.button whileTap={{ scale: 0.94 }} className="btn-secondary text-xs py-1 px-3" onClick={handleApplyKnapsack}>
+        Use Items
+      </motion.button>
     </>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
 import { drawSearchBars, clear, getSearchBarAt, playFrequencyTone } from './CanvasRenderer';
@@ -139,48 +140,65 @@ export const SearchingCanvas: React.FC = () => {
       <canvas ref={canvasRef} className="absolute inset-0" />
 
       {/* Top Floating Narrative Banner */}
-      <div className="absolute top-3 inset-x-4 flex items-center justify-center pointer-events-none z-10">
-        <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg bg-surface-secondary/95 backdrop-blur-md border border-surface-tertiary shadow-lg text-xs font-mono pointer-events-auto max-w-2xl overflow-hidden">
-          <span className={`px-2 py-0.5 rounded border text-[10px] font-bold tracking-wider ${badge.bg}`}>
+      <div className="absolute top-2.5 inset-x-4 flex items-center justify-center pointer-events-none z-10">
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.15 }}
+          className="flex items-center gap-2.5 px-3 py-1 rounded-full bg-surface-secondary/90 backdrop-blur-md border border-white/10 shadow-sm text-xs font-mono pointer-events-auto max-w-xl overflow-hidden"
+        >
+          <motion.span
+            key={badge.label}
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.1 }}
+            className={`px-1.5 py-0.2 rounded text-[10px] font-bold tracking-wider ${badge.bg}`}
+          >
             {badge.label}
-          </span>
+          </motion.span>
           <span className="text-textSecondary truncate">
-            {step?.reason || `Ready. Searching for key ${target}.`}
+            {step?.reason || 'Ready. Click Play or Step to begin searching.'}
           </span>
-        </div>
+        </motion.div>
       </div>
 
       {/* Interactive Bar Inspection Tooltip */}
-      {hoverIdx !== null && tooltipPos && step?.arr && step.arr[hoverIdx] !== undefined && (
-        <div
-          style={{ left: `${tooltipPos.x}px`, top: `${tooltipPos.y}px` }}
-          className="absolute -translate-x-1/2 pointer-events-none z-20 px-2.5 py-1 rounded-md bg-slate-900/95 border border-sky-500/50 shadow-xl text-xs font-mono text-white whitespace-nowrap flex items-center gap-1.5 backdrop-blur-sm"
-        >
-          <span className="text-sky-400 font-bold">arr[{hoverIdx}]</span>
-          <span className="text-slate-400">=</span>
-          <span className="text-emerald-300 font-bold text-sm">{step.arr[hoverIdx]}</span>
-          {step.arr[hoverIdx] === target && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30 ml-0.5">
-              TARGET
-            </span>
-          )}
-          {step.found === hoverIdx && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded border border-emerald-500/30 ml-1">
-              MATCH
-            </span>
-          )}
-          {step.current === hoverIdx && step.found !== hoverIdx && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 ml-1">
-              PROBING
-            </span>
-          )}
-          {step.discarded?.includes(hoverIdx) && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded border border-slate-700 ml-1">
-              DISCARDED
-            </span>
-          )}
-        </div>
-      )}
+      <AnimatePresence>
+        {hoverIdx !== null && tooltipPos && step?.arr && step.arr[hoverIdx] !== undefined && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.1 }}
+            style={{ left: `${tooltipPos.x}px`, top: `${tooltipPos.y}px` }}
+            className="absolute -translate-x-1/2 pointer-events-none z-20 px-2.5 py-1 rounded-md bg-slate-900/95 border border-sky-500/50 shadow-xl text-xs font-mono text-white whitespace-nowrap flex items-center gap-1.5 backdrop-blur-sm"
+          >
+            <span className="text-sky-400 font-bold">arr[{hoverIdx}]</span>
+            <span className="text-slate-400">=</span>
+            <span className="text-emerald-300 font-bold text-sm">{step.arr[hoverIdx]}</span>
+            {step.arr[hoverIdx] === target && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30 ml-0.5">
+                TARGET
+              </span>
+            )}
+            {step.found === hoverIdx && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded border border-emerald-500/30 ml-1">
+                MATCH
+              </span>
+            )}
+            {step.current === hoverIdx && step.found !== hoverIdx && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 ml-1">
+                PROBING
+              </span>
+            )}
+            {step.discarded?.includes(hoverIdx) && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded border border-slate-700 ml-1">
+                DISCARDED
+              </span>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

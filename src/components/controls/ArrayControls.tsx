@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 
 const PRESET_OPTIONS = [
@@ -59,8 +60,9 @@ const ArrayControls: React.FC = () => {
           {PRESET_OPTIONS.map((opt) => {
             const isActive = activePreset === opt.id;
             return (
-              <button
+              <motion.button
                 key={opt.id}
+                whileTap={{ scale: 0.94 }}
                 onClick={() => handleSelectPreset(opt.id)}
                 className={`px-2.5 py-1 text-xs font-medium rounded transition-all ${
                   isActive
@@ -69,7 +71,7 @@ const ArrayControls: React.FC = () => {
                 }`}
               >
                 {opt.label}
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -92,7 +94,8 @@ const ArrayControls: React.FC = () => {
 
       {/* Custom Array Popover Button */}
       <div className="relative">
-        <button
+        <motion.button
+          whileTap={{ scale: 0.94 }}
           onClick={() => setIsCustomOpen(!isCustomOpen)}
           className={`btn-secondary text-xs py-1.5 px-2.5 flex items-center gap-1.5 transition-all ${
             isCustomOpen ? 'bg-surface-tertiary text-white border-accent/40' : ''
@@ -108,48 +111,58 @@ const ArrayControls: React.FC = () => {
             />
           </svg>
           <span>Custom</span>
-        </button>
+        </motion.button>
 
-        {isCustomOpen && (
-          <div className="absolute left-0 top-full mt-2 z-40 w-72 p-3 bg-surface-secondary/95 backdrop-blur-md border border-surface-tertiary rounded-xl shadow-2xl flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex justify-between items-center text-xs font-semibold text-textPrimary">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-textSecondary">
-                Custom Array
-              </span>
-              <button
-                onClick={() => setIsCustomOpen(false)}
-                className="text-textSecondary hover:text-white p-0.5 rounded transition-colors"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <input
-              type="text"
-              className="ctrl-input w-full text-xs font-mono"
-              placeholder="e.g. 15, 42, 8, 99, 23, 71"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleApplyCustom()}
-              autoFocus
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                className="btn-secondary text-xs py-1 px-2.5"
-                onClick={() => setIsCustomOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn-primary text-xs py-1 px-3"
-                onClick={handleApplyCustom}
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {isCustomOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="absolute left-0 top-full mt-2 z-40 w-72 p-3 bg-surface-secondary/95 backdrop-blur-md border border-surface-tertiary rounded-xl shadow-2xl flex flex-col gap-2.5"
+            >
+              <div className="flex justify-between items-center text-xs font-semibold text-textPrimary">
+                <span className="font-mono text-[11px] uppercase tracking-wider text-textSecondary">
+                  Custom Array
+                </span>
+                <button
+                  onClick={() => setIsCustomOpen(false)}
+                  className="text-textSecondary hover:text-white p-0.5 rounded transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <input
+                type="text"
+                className="ctrl-input w-full text-xs font-mono"
+                placeholder="e.g. 15, 42, 8, 99, 23, 71"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleApplyCustom()}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  className="btn-secondary text-xs py-1 px-2.5"
+                  onClick={() => setIsCustomOpen(false)}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  className="btn-primary text-xs py-1 px-3"
+                  onClick={handleApplyCustom}
+                >
+                  Apply
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

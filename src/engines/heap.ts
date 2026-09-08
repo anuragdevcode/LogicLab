@@ -1,14 +1,19 @@
-import { ComplexityInfo, HeapLayoutResult } from '@/types';
+import { ComplexityInfo, HeapLayoutResult, DataStructureInfo } from '@/types';
 
-export interface HeapInfo {
-  name: string;
-  complexity: ComplexityInfo;
-  pseudo: string[];
-}
-
-export const HEAP_INFO: Record<string, HeapInfo> = {
+export const HEAP_INFO: Record<string, DataStructureInfo> = {
   minheap: {
     name: 'Min Heap',
+    category: 'Priority Queue Tree',
+    description:
+      'Complete binary tree satisfying the Min-Heap property: each node has a value smaller than or equal to its children, with the absolute minimum element always residing at the root (index 0).',
+    whenToUse:
+      'Priority queues, Dijkstra shortest path algorithm, Prim minimum spanning tree, continuous median stream queries.',
+    constraints: [
+      'Heap Tree Shape: Complete Binary Tree filled left-to-right',
+      'Min-Heap Invariant: parent <= left_child and parent <= right_child',
+      'Array Indexing: left = 2i + 1, right = 2i + 2, parent = floor((i-1)/2)',
+      'Capacity: Max 31 nodes for visual rendering',
+    ],
     complexity: { insert: 'O(log n)', extractMin: 'O(log n)', peek: 'O(1)', space: 'O(n)' },
     pseudo: [
       '<span class="pseudo-fn">insert</span>(val):',
@@ -22,6 +27,17 @@ export const HEAP_INFO: Record<string, HeapInfo> = {
   },
   maxheap: {
     name: 'Max Heap',
+    category: 'Priority Queue Tree',
+    description:
+      'Complete binary tree satisfying the Max-Heap property: each node has a value greater than or equal to its children, with the absolute maximum element always residing at the root (index 0).',
+    whenToUse:
+      'Heap Sort, order statistics (k-th smallest/largest), CPU maximum priority process schedulers.',
+    constraints: [
+      'Heap Tree Shape: Complete Binary Tree filled left-to-right',
+      'Max-Heap Invariant: parent >= left_child and parent >= right_child',
+      'Array Indexing: left = 2i + 1, right = 2i + 2, parent = floor((i-1)/2)',
+      'Capacity: Max 31 nodes for visual rendering',
+    ],
     complexity: { insert: 'O(log n)', extractMax: 'O(log n)', peek: 'O(1)', space: 'O(n)' },
     pseudo: [
       '<span class="pseudo-fn">insert</span>(val):',

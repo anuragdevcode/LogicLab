@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 import { BST } from '@/engines/bst';
 
@@ -22,7 +23,12 @@ const BSTControls: React.FC = () => {
   };
 
   return (
-    <div className="viz-controls-overlay">
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18 }}
+      className="viz-controls-overlay shadow-md"
+    >
       <input
         type="number"
         className="ctrl-input w-20"
@@ -31,13 +37,21 @@ const BSTControls: React.FC = () => {
         onChange={(e) => setVal(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleInsert()}
       />
-      <button className="btn-primary text-sm py-1.5 px-3" onClick={handleInsert}>
+      <motion.button
+        whileTap={{ scale: 0.94 }}
+        className="btn-primary text-xs py-1.5 px-3 font-medium"
+        onClick={handleInsert}
+      >
         Insert
-      </button>
-      <button className="btn-secondary text-sm py-1.5 px-3 text-accent-rose" onClick={handleDelete}>
+      </motion.button>
+      <motion.button
+        whileTap={{ scale: 0.94 }}
+        className="btn-secondary text-xs py-1.5 px-3 text-rose-400 hover:text-rose-300 font-medium"
+        onClick={handleDelete}
+      >
         Delete
-      </button>
-    </div>
+      </motion.button>
+    </motion.div>
   );
 };
 

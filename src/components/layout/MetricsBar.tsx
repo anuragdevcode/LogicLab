@@ -1,33 +1,105 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
+import { STACK_CAPACITY } from '@/engines';
 
 const MetricsBar: React.FC = () => {
+  const module = useAppStore((s) => s.module);
+  const algo = useAppStore((s) => s.algo);
   const metrics = useAppStore((s) => s.metrics);
+  const stackData = useAppStore((s) => s.stackData);
+  const queueCount = useAppStore((s) => s.queueCount);
   const status = useAppStore((s) => s.status);
   const statusColor = useAppStore((s) => s.statusColor);
 
+  const isStackModule = module === 'stack';
+  const isQueue = algo === 'queue' || algo === 'circular_queue';
+
+  const card1Label = isStackModule
+    ? isQueue
+      ? 'Enqueues'
+      : 'Pushes'
+    : 'Comparisons';
+  const card1Value = isStackModule ? metrics.accesses : metrics.comparisons;
+
+  const card2Label = isStackModule
+    ? isQueue
+      ? 'Dequeues'
+      : 'Pops'
+    : 'Swaps';
+  const card2Value = isStackModule ? metrics.swaps : metrics.swaps;
+
+  const card3Label = isStackModule ? 'Occupancy' : 'Array Accesses';
+  const card3Value = isStackModule
+    ? `${isQueue ? queueCount : stackData.length} / ${STACK_CAPACITY}`
+    : metrics.accesses;
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-2 bg-surface border-t border-surface-tertiary">
-      <div className="metric-card">
-        <span className="text-[10px] text-textSecondary uppercase tracking-wider">Comparisons</span>
-        <span className="text-lg font-mono font-bold text-textPrimary">{metrics.comparisons}</span>
+    <div className="h-9 px-4 bg-surface border-t border-white/5 flex items-center justify-between text-xs select-none overflow-x-auto flex-shrink-0">
+      {/* Left: Metrics Strip */}
+      <div className="flex items-center gap-4 min-w-max">
+        <div className="flex items-center gap-1.5 font-mono text-[11px]">
+          <span className="text-textSecondary">{card1Label}:</span>
+          <motion.span
+            key={`m1-${card1Value}`}
+            initial={{ scale: 1.25, color: '#60a5fa' }}
+            animate={{ scale: 1, color: '#f8fafc' }}
+            transition={{ duration: 0.18 }}
+            className="font-semibold"
+          >
+            {card1Value}
+          </motion.span>
+        </div>
+
+        <span className="text-white/10">•</span>
+
+        <div className="flex items-center gap-1.5 font-mono text-[11px]">
+          <span className="text-textSecondary">{card2Label}:</span>
+          <motion.span
+            key={`m2-${card2Value}`}
+            initial={{ scale: 1.25, color: '#f43f5e' }}
+            animate={{ scale: 1, color: '#f8fafc' }}
+            transition={{ duration: 0.18 }}
+            className="font-semibold"
+          >
+            {card2Value}
+          </motion.span>
+        </div>
+
+        <span className="text-white/10">•</span>
+
+        <div className="flex items-center gap-1.5 font-mono text-[11px]">
+          <span className="text-textSecondary">{card3Label}:</span>
+          <motion.span
+            key={`m3-${card3Value}`}
+            initial={{ scale: 1.2, color: '#38bdf8' }}
+            animate={{ scale: 1, color: '#3b82f6' }}
+            transition={{ duration: 0.18 }}
+            className="font-semibold text-accent"
+          >
+            {card3Value}
+          </motion.span>
+        </div>
       </div>
-      <div className="metric-card">
-        <span className="text-[10px] text-textSecondary uppercase tracking-wider">Swaps</span>
-        <span className="text-lg font-mono font-bold text-textPrimary">{metrics.swaps}</span>
-      </div>
-      <div className="metric-card">
-        <span className="text-[10px] text-textSecondary uppercase tracking-wider">Array Accesses</span>
-        <span className="text-lg font-mono font-bold text-textPrimary">{metrics.accesses}</span>
-      </div>
-      <div className="metric-card">
-        <span className="text-[10px] text-textSecondary uppercase tracking-wider">Status</span>
-        <span
-          className="text-sm font-medium truncate px-2 text-center w-full"
-          style={{ color: statusColor || '#3b82f6' }}
+
+      {/* Right: Live Engine Status */}
+      <div className="flex items-center gap-2 max-w-sm sm:max-w-md truncate pl-4">
+        <motion.span
+          animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+          transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+          style={{ backgroundColor: statusColor || '#3b82f6' }}
+        />
+        <motion.span
+          key={status}
+          initial={{ opacity: 0.6, y: -1 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.15 }}
+          className="font-mono text-[11px] truncate"
+          style={{ color: statusColor || '#94a3b8' }}
         >
           {status}
-        </span>
+        </motion.span>
       </div>
     </div>
   );

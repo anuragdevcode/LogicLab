@@ -42,7 +42,7 @@ const ComplexityTable: React.FC = () => {
   }
 
   return (
-    <div className="p-4 h-full flex flex-col font-mono text-xs overflow-y-auto space-y-3 select-none">
+    <div className="p-4 h-full flex flex-col font-sans text-xs overflow-y-auto space-y-3 select-none">
       {/* Notion-style Page Header & Properties */}
       <div className="space-y-2 pb-2.5 border-b border-white/10">
         <div className="flex items-center justify-between">
@@ -123,6 +123,33 @@ const ComplexityTable: React.FC = () => {
               When To Use
             </div>
             <p>{algoMeta.whenToUse}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Notion-style Callout 3: Constraints & Preconditions */}
+      {algoMeta?.constraints && algoMeta.constraints.length > 0 && (
+        <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/[0.04] border border-amber-500/20 text-xs font-sans text-textSecondary leading-relaxed">
+          <div className="w-4 h-4 mt-0.5 text-amber-400 flex-shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div className="space-y-1.5 w-full">
+            <div className="text-[11px] font-mono font-semibold uppercase tracking-wider text-amber-300">
+              Constraints & Invariants
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-0.5">
+              {algoMeta.constraints.map((c, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-1.5 font-mono text-[11px] text-textSecondary bg-white/[0.02] px-2 py-1 rounded border border-white/5"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400/80 flex-shrink-0" />
+                  <span className="truncate">{c}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

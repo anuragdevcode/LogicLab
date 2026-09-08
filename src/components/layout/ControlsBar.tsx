@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 
 const ControlsBar: React.FC = () => {
@@ -55,17 +56,17 @@ const ControlsBar: React.FC = () => {
   const delayMs = Math.round(1200 / speed);
 
   return (
-    <div className="px-4 py-2 border-b border-surface-tertiary bg-surface-secondary flex flex-col lg:flex-row gap-3 items-center justify-between select-none">
+    <div className="px-4 py-1.5 border-b border-white/10 bg-surface-secondary flex flex-col lg:flex-row gap-2.5 items-center justify-between select-none flex-shrink-0">
       {/* Left Custom Controls (Dataset Presets, Size, Inputs) */}
-      <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto" id="custom-controls">
+      <div className="flex items-center gap-2.5 flex-wrap w-full lg:w-auto" id="custom-controls">
         {customControls}
       </div>
 
       {/* Right Controls (Speed, Sound, Playback Group) */}
-      {!hidePlayback && (
-        <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end flex-wrap">
+      {!hidePlayback ? (
+        <div className="flex items-center gap-2.5 w-full lg:w-auto justify-between lg:justify-end flex-wrap">
           {/* Stacked Speed & Sound Control Cluster */}
-          <div className="inline-flex items-center bg-surface p-1 rounded-lg border border-surface-tertiary gap-2">
+          <div className="inline-flex items-center bg-surface p-0.5 rounded-md border border-white/10 gap-1.5">
             {/* Speed Slider & Badge */}
             <div className="flex items-center gap-2 px-2">
               <span className="text-[10px] font-mono text-textSecondary uppercase tracking-wider hidden sm:inline">
@@ -90,8 +91,9 @@ const ControlsBar: React.FC = () => {
             {/* Quick Speed Presets Segmented Bar */}
             <div className="hidden sm:flex items-center bg-surface-secondary p-0.5 rounded-md border border-white/5 gap-0.5">
               {[1, 2, 5, 10].map((spd) => (
-                <button
+                <motion.button
                   key={spd}
+                  whileTap={{ scale: 0.92 }}
                   onClick={() => setSpeed(spd)}
                   className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition-colors ${
                     speed === spd
@@ -100,12 +102,13 @@ const ControlsBar: React.FC = () => {
                   }`}
                 >
                   {spd}x
-                </button>
+                </motion.button>
               ))}
             </div>
 
             {/* Sound Toggle Button */}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.92 }}
               onClick={toggleSound}
               className={`p-1.5 rounded-md border transition-colors ${
                 soundEnabled
@@ -134,13 +137,14 @@ const ControlsBar: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
                 </svg>
               )}
-            </button>
+            </motion.button>
           </div>
 
           {/* Stacked Minimalist Playback Cluster */}
-          <div className="inline-flex items-center rounded-lg border border-surface-tertiary bg-surface p-0.5 shadow-sm">
+          <div className="inline-flex items-center rounded-md border border-white/10 bg-surface p-0.5 shadow-sm">
             {/* Play / Pause */}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 playing
                   ? 'bg-amber-600 text-white shadow-sm'
@@ -164,10 +168,11 @@ const ControlsBar: React.FC = () => {
                   <span>Play</span>
                 </>
               )}
-            </button>
+            </motion.button>
 
             {/* Step Forward */}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-textSecondary hover:text-textPrimary hover:bg-surface-tertiary/60 rounded-md transition-colors disabled:opacity-40 disabled:pointer-events-none"
               onClick={stepForward}
               disabled={playing}
@@ -177,10 +182,11 @@ const ControlsBar: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               </svg>
               <span>Step</span>
-            </button>
+            </motion.button>
 
             {/* Reset */}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-textSecondary hover:text-textPrimary hover:bg-surface-tertiary/60 rounded-md transition-colors"
               onClick={reset}
               title="Reset [R]"
@@ -194,8 +200,42 @@ const ControlsBar: React.FC = () => {
                 />
               </svg>
               <span>Reset</span>
-            </button>
+            </motion.button>
           </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={toggleSound}
+            className={`p-1.5 rounded-md border transition-colors ${
+              soundEnabled
+                ? 'bg-accent/15 border-accent/40 text-accent'
+                : 'bg-surface border-surface-tertiary text-textSecondary hover:text-textPrimary'
+            }`}
+            title={soundEnabled ? 'Mute audio [M]' : 'Enable sound sonification [M]'}
+          >
+            {soundEnabled ? (
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                />
+              </svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+              </svg>
+            )}
+          </motion.button>
         </div>
       )}
     </div>

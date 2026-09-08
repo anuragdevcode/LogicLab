@@ -103,7 +103,7 @@ export function drawSortBars(
       ctx.setLineDash([]);
 
       ctx.fillStyle = '#60a5fa';
-      ctx.font = "bold 10px 'Space Mono', monospace";
+      ctx.font = "bold 10px 'JetBrains Mono', monospace";
       ctx.textAlign = 'left';
       ctx.fillText(`Partition [${lo}..${hi}]`, rx + 6, 28);
     }
@@ -169,7 +169,7 @@ export function drawSortBars(
       const badgeText = activePointers.join(',');
       const badgeY = Math.max(16, y - 8);
       ctx.fillStyle = isPivot ? C.accent4 : isCmp ? (swap ? C.accent3 : C.accent) : '#94a3b8';
-      ctx.font = `bold ${Math.max(8, Math.min(barW, 10))}px 'Space Mono', monospace`;
+      ctx.font = `bold ${Math.max(8, Math.min(barW, 10))}px 'JetBrains Mono', monospace`;
       ctx.textAlign = 'center';
       ctx.fillText(badgeText, x + barW / 2, badgeY);
 
@@ -184,14 +184,14 @@ export function drawSortBars(
     // 4. Value label at bottom of canvas
     if (barW >= 14) {
       ctx.fillStyle = isHover ? '#38bdf8' : isCmp ? '#ffffff' : isDone ? '#a7f3d0' : C.text2;
-      ctx.font = `bold ${Math.max(9, Math.min(barW - 2, 12))}px 'Space Mono', monospace`;
+      ctx.font = `bold ${Math.max(9, Math.min(barW - 2, 12))}px 'JetBrains Mono', monospace`;
       ctx.textAlign = 'center';
       ctx.fillText(val.toString(), x + barW / 2, h - 24);
 
       // Optional index subscript if width allows
       if (barW >= 24) {
         ctx.fillStyle = '#64748b';
-        ctx.font = `9px 'Space Mono', monospace`;
+        ctx.font = `9px 'JetBrains Mono', monospace`;
         ctx.fillText(`[${i}]`, x + barW / 2, h - 10);
       }
     }
@@ -259,7 +259,7 @@ export function drawSearchBars(
       ctx.setLineDash([]);
 
       ctx.fillStyle = '#60a5fa';
-      ctx.font = "bold 10px 'Space Mono', monospace";
+      ctx.font = "bold 10px 'JetBrains Mono', monospace";
       ctx.textAlign = 'left';
       ctx.fillText(`Search Window [${rLo}..${rHi}]`, rx + 6, 28);
     }
@@ -336,7 +336,7 @@ export function drawSearchBars(
       const badgeText = activePointers.join(',');
       const badgeY = Math.max(16, y - 8);
       ctx.fillStyle = isFound ? C.accent2 : isCurrent ? C.accent : C.accent4;
-      ctx.font = `bold ${Math.max(8, Math.min(barW, 10))}px 'Space Mono', monospace`;
+      ctx.font = `bold ${Math.max(8, Math.min(barW, 10))}px 'JetBrains Mono', monospace`;
       ctx.textAlign = 'center';
       ctx.fillText(badgeText, x + barW / 2, badgeY);
 
@@ -350,13 +350,13 @@ export function drawSearchBars(
     // 4. Value label at bottom of canvas
     if (barW >= 14) {
       ctx.fillStyle = isHover ? '#38bdf8' : isFound ? '#a7f3d0' : isCurrent ? '#ffffff' : isDiscarded ? '#475569' : C.text2;
-      ctx.font = `bold ${Math.max(9, Math.min(barW - 2, 12))}px 'Space Mono', monospace`;
+      ctx.font = `bold ${Math.max(9, Math.min(barW - 2, 12))}px 'JetBrains Mono', monospace`;
       ctx.textAlign = 'center';
       ctx.fillText(val.toString(), x + barW / 2, h - 24);
 
       if (barW >= 24) {
         ctx.fillStyle = '#64748b';
-        ctx.font = `9px 'Space Mono', monospace`;
+        ctx.font = `9px 'JetBrains Mono', monospace`;
         ctx.fillText(`[${i}]`, x + barW / 2, h - 10);
       }
     }
@@ -402,7 +402,7 @@ export function drawTree(ctx: CanvasRenderingContext2D, w: number, h: number, la
     ctx.shadowBlur = 0;
 
     ctx.fillStyle = isHL ? '#fff' : C.text;
-    ctx.font = 'bold 14px Space Mono';
+    ctx.font = "bold 14px 'JetBrains Mono', monospace";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(n.val.toString(), n.x, n.y);
@@ -449,7 +449,7 @@ export function drawGraph(ctx: CanvasRenderingContext2D, w: number, h: number, n
     const mx = (nx(from) + nx(to)) / 2;
     const my = (ny(from) + ny(to)) / 2;
     ctx.fillStyle = C.text2;
-    ctx.font = '10px Space Mono';
+    ctx.font = "10px 'JetBrains Mono', monospace";
     ctx.textAlign = 'center';
     ctx.fillText(e.w.toString(), mx, my - 5);
   });
@@ -484,7 +484,7 @@ export function drawGraph(ctx: CanvasRenderingContext2D, w: number, h: number, n
     ctx.shadowBlur = 0;
 
     ctx.fillStyle = isCurrent ? '#fff' : C.text;
-    ctx.font = 'bold 14px Space Mono';
+    ctx.font = "bold 14px 'JetBrains Mono', monospace";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(n.label, x, y);
@@ -492,7 +492,7 @@ export function drawGraph(ctx: CanvasRenderingContext2D, w: number, h: number, n
 
     if (dist[n.id] !== undefined && dist[n.id] !== Infinity) {
       ctx.fillStyle = C.accent2;
-      ctx.font = 'bold 10px Space Mono';
+      ctx.font = "bold 10px 'JetBrains Mono', monospace";
       ctx.fillText(dist[n.id].toString(), x, y + R + 14);
     }
   });
