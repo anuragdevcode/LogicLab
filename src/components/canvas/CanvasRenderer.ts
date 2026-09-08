@@ -363,51 +363,86 @@ export function drawSearchBars(
   }
 }
 
-export function drawTree(ctx: CanvasRenderingContext2D, w: number, h: number, layout: TreeLayoutItem[], highlight: number[] = []) {
+export function drawTree(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  layout: TreeLayoutItem[],
+  activeNodes: number[] = [],
+  foundNode: number | null = null,
+  hoveredVal: number | null = null
+) {
   clear(ctx, w, h);
   if (!layout || !layout.length) {
     ctx.fillStyle = C.text2;
-    ctx.font = '14px Outfit';
+    ctx.font = "13px 'Inter', sans-serif";
     ctx.textAlign = 'center';
-    ctx.fillText('Insert nodes using the controls above', w / 2, h / 2);
+    ctx.fillText('Tree is empty. Insert keys or choose a preset above.', w / 2, h / 2);
     return;
   }
 
   const R = 22;
 
-  layout.filter((e): e is import('@/types').TreeLayoutEdge => 'edge' in e && e.edge === true).forEach(e => {
-    ctx.strokeStyle = C.border;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(e.from[0], e.from[1]);
-    ctx.lineTo(e.to[0], e.to[1]);
-    ctx.stroke();
-  });
+  // 1. Draw Edges
+  layout
+    .filter((e): e is import('@/types').TreeLayoutEdge => 'edge' in e && e.edge === true)
+    .forEach((e) => {
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1.75;
+      ctx.beginPath();
+      ctx.moveTo(e.from[0], e.from[1]);
+      ctx.lineTo(e.to[0], e.to[1]);
+      ctx.stroke();
+    });
 
-  layout.filter((n): n is import('@/types').TreeLayoutNode => !('edge' in n) && n.val !== undefined).forEach(n => {
-    const isHL = highlight.includes(n.val);
+  // 2. Draw Nodes
+  layout
+    .filter((n): n is import('@/types').TreeLayoutNode => !('edge' in n) && n.val !== undefined)
+    .forEach((n) => {
+      const isFound = foundNode === n.val;
+      const isActive = activeNodes.includes(n.val);
+      const isHovered = hoveredVal === n.val;
 
-    if (isHL) { 
-      ctx.shadowColor = C.accent; 
-      ctx.shadowBlur = 16; 
-    }
+      ctx.save();
+      if (isFound) {
+        ctx.shadowColor = '#10b981';
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = '#064e3b';
+        ctx.strokeStyle = '#34d399';
+        ctx.lineWidth = 2.5;
+      } else if (isActive) {
+        ctx.shadowColor = '#3b82f6';
+        ctx.shadowBlur = 16;
+        ctx.fillStyle = '#1e3a8a';
+        ctx.strokeStyle = '#60a5fa';
+        ctx.lineWidth = 2;
+      } else if (isHovered) {
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+      } else {
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#141c2e';
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1.5;
+      }
 
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, R, 0, Math.PI * 2);
-    ctx.fillStyle = isHL ? C.accent : C.base;
-    ctx.fill();
-    ctx.strokeStyle = isHL ? C.accent2 : C.border;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, R, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
 
-    ctx.fillStyle = isHL ? '#fff' : C.text;
-    ctx.font = "bold 14px 'JetBrains Mono', monospace";
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(n.val.toString(), n.x, n.y);
-    ctx.textBaseline = 'alphabetic';
-  });
+      // Node value label
+      ctx.fillStyle = isFound ? '#a7f3d0' : isActive ? '#bfdbfe' : isHovered ? '#38bdf8' : '#f8fafc';
+      ctx.font = "bold 13px 'JetBrains Mono', monospace";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(n.val.toString(), n.x, n.y);
+      ctx.textBaseline = 'alphabetic';
+    });
 }
 
 export function drawGraph(ctx: CanvasRenderingContext2D, w: number, h: number, nodes: GraphNode[], edges: GraphEdge[], state: Partial<GraphStep> = {}) {

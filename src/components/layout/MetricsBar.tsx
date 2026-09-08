@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
-import { STACK_CAPACITY, LINKED_LIST_CAPACITY } from '@/engines';
+import { STACK_CAPACITY, LINKED_LIST_CAPACITY, BST_CAPACITY } from '@/engines';
 
 const MetricsBar: React.FC = () => {
   const module = useAppStore((s) => s.module);
@@ -10,34 +10,44 @@ const MetricsBar: React.FC = () => {
   const stackData = useAppStore((s) => s.stackData);
   const queueCount = useAppStore((s) => s.queueCount);
   const llData = useAppStore((s) => s.llData);
+  const bst = useAppStore((s) => s.bst);
   const status = useAppStore((s) => s.status);
   const statusColor = useAppStore((s) => s.statusColor);
 
   const isStackModule = module === 'stack';
   const isLLModule = module === 'linkedlist';
+  const isBSTModule = module === 'bst';
   const isQueue = algo === 'queue' || algo === 'circular_queue';
 
-  const card1Label = isLLModule
+  const card1Label = isBSTModule
+    ? 'Nodes'
+    : isLLModule
     ? 'Nodes'
     : isStackModule
     ? isQueue
       ? 'Enqueues'
       : 'Pushes'
     : 'Comparisons';
-  const card1Value = isLLModule
+  const card1Value = isBSTModule
+    ? `${bst ? bst.getNodeCount() : 0} / ${BST_CAPACITY}`
+    : isLLModule
     ? `${llData.length} / ${LINKED_LIST_CAPACITY}`
     : isStackModule
     ? metrics.accesses
     : metrics.comparisons;
 
-  const card2Label = isLLModule
+  const card2Label = isBSTModule
+    ? 'Height'
+    : isLLModule
     ? 'Head'
     : isStackModule
     ? isQueue
       ? 'Dequeues'
       : 'Pops'
     : 'Swaps';
-  const card2Value = isLLModule
+  const card2Value = isBSTModule
+    ? `${bst ? bst.getHeight() : 0}`
+    : isLLModule
     ? llData.length > 0
       ? `${llData[0]}`
       : 'null'
@@ -45,12 +55,18 @@ const MetricsBar: React.FC = () => {
     ? metrics.swaps
     : metrics.swaps;
 
-  const card3Label = isLLModule
+  const card3Label = isBSTModule
+    ? 'Root'
+    : isLLModule
     ? 'Tail'
     : isStackModule
     ? 'Occupancy'
     : 'Array Accesses';
-  const card3Value = isLLModule
+  const card3Value = isBSTModule
+    ? bst && bst.root
+      ? `${bst.root.val}`
+      : 'null'
+    : isLLModule
     ? llData.length > 0
       ? `${llData[llData.length - 1]}`
       : 'null'

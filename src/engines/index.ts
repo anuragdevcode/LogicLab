@@ -16,7 +16,18 @@ export {
   LINKED_LIST_INFOS,
   LINKED_LIST_CAPACITY,
 } from './linkedlist';
-export { BST_INFO, BST, Node as BSTNode } from './bst';
+export {
+  BST_INFO,
+  BST_OPERATIONS_INFO,
+  BST_INORDER_INFO,
+  BST_PREORDER_INFO,
+  BST_POSTORDER_INFO,
+  BST_LEVELORDER_INFO,
+  BST_INFOS,
+  BST_CAPACITY,
+  BST,
+  Node as BSTNode,
+} from './bst';
 export { HEAP_INFO, Heap } from './heap';
 export { GRAPH_INFO, DEFAULT_NODES, DEFAULT_EDGES, bfsGen, dfsGen, dijkstraGen } from './graph';
 export { DP_ALGORITHMS } from './dp';

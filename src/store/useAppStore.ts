@@ -10,6 +10,8 @@ import {
   StackNarrative,
   LinkedListMode,
   LinkedListNarrative,
+  BSTMode,
+  BSTNarrative,
 } from '@/types';
 import { BST } from '@/engines/bst';
 import { Heap } from '@/engines/heap';
@@ -32,6 +34,8 @@ import {
   HEAP_INFO,
   LINKED_LIST_CAPACITY,
   LINKED_LIST_INFOS,
+  BST_CAPACITY,
+  BST_INFOS,
 } from '@/engines';
 import { playFrequencyTone } from '@/components/canvas/CanvasRenderer';
 
@@ -90,8 +94,13 @@ export interface AppState {
   addMetricDelta: (delta?: MetricsDelta) => void;
   setStatus: (text: string, color?: string) => void;
 
-  // Data structures
+  // BST
   bst: BST | null;
+  bstMode: BSTMode;
+  bstActiveNodes: number[];
+  bstFoundNode: number | null;
+  bstNarrative: BSTNarrative | null;
+  bstTraversalOutput: number[] | null;
   heap: Heap | null;
   heapType: 'min' | 'max';
   stackData: number[];
@@ -119,6 +128,14 @@ export interface AppState {
   llReverse: () => Promise<void>;
   resetLinkedListData: () => void;
   setBst: (bst: BST | null) => void;
+  setBSTMode: (mode: BSTMode) => void;
+  bstInsert: (val: number) => boolean;
+  bstDelete: (val: number) => boolean;
+  bstSearch: (target: number) => Promise<boolean>;
+  bstRunTraversal: (type?: BSTMode) => Promise<number[]>;
+  bstFindMin: () => number | null;
+  bstFindMax: () => number | null;
+  bstLoadPreset: (preset: 'balanced' | 'skewed') => void;
   setHeap: (heap: Heap | null) => void;
   setHeapType: (type: 'min' | 'max') => void;
 
@@ -222,6 +239,24 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
       if (LINKED_LIST_INFOS[mode]) {
         get().loadInfo(LINKED_LIST_INFOS[mode]);
+      }
+    } else if (currentMod === 'bst') {
+      const mode = (['bst', 'inorder', 'preorder', 'postorder', 'levelorder'].includes(algo) ? algo : 'bst') as BSTMode;
+      set({
+        bstMode: mode,
+        bstActiveNodes: [],
+        bstFoundNode: null,
+        bstTraversalOutput: null,
+        status: `Switched to ${BST_INFOS[mode]?.name || 'Binary Search Tree'}`,
+        statusColor: '',
+        bstNarrative: {
+          action: 'mode_switch',
+          badge: 'PARADIGM',
+          reason: BST_INFOS[mode]?.description || 'Binary Search Tree mode selected.',
+        },
+      });
+      if (BST_INFOS[mode]) {
+        get().loadInfo(BST_INFOS[mode]);
       }
     } else if (currentMod === 'heap' && HEAP_INFO[algo]) {
       get().loadInfo(HEAP_INFO[algo]);
@@ -342,6 +377,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // Data structures
   bst: null,
+  bstMode: 'bst',
+  bstActiveNodes: [],
+  bstFoundNode: null,
+  bstNarrative: {
+    action: 'ready',
+    badge: 'READY',
+    reason: 'Binary Search Tree initialized. Insert keys to construct the tree (capacity: 15 nodes).',
+  },
+  bstTraversalOutput: null,
   heap: null,
   heapType: 'min',
   stackData: [24, 45, 68],
@@ -1222,6 +1266,405 @@ export const useAppStore = create<AppState>((set, get) => ({
     setTimeout(() => { set({ llActivePointer: null }); }, 1200);
   },
   setBst: (bst) => set({ bst }),
+  setBSTMode: (mode) => {
+    set({
+      bstMode: mode,
+      bstActiveNodes: [],
+      bstFoundNode: null,
+      bstTraversalOutput: null,
+      status: `Switched to ${BST_INFOS[mode]?.name || 'Binary Search Tree'}`,
+      statusColor: '',
+      bstNarrative: {
+        action: 'mode_switch',
+        badge: 'PARADIGM',
+        reason: BST_INFOS[mode]?.description || 'Binary Search Tree mode selected.',
+      },
+    });
+    if (BST_INFOS[mode]) {
+      get().loadInfo(BST_INFOS[mode]);
+    }
+  },
+  bstInsert: (val) => {
+    const num = Number(val);
+    if (!Number.isFinite(num)) {
+      set({
+        status: 'Enter a valid number to insert',
+        statusColor: '#f43f5e',
+        bstNarrative: {
+          action: 'error',
+          badge: 'INVALID',
+          reason: 'Input is not a valid integer. Enter a numeric key between 0 and 999.',
+          isError: true,
+        },
+      });
+      return false;
+    }
+
+    let tree = get().bst;
+    if (!tree) {
+      tree = new BST();
+    }
+
+    if (tree.getNodeCount() >= BST_CAPACITY) {
+      if (get().soundEnabled) playFrequencyTone(15, 100, 160);
+      set({
+        status: `Tree at capacity: Cannot exceed maximum ${BST_CAPACITY} nodes!`,
+        statusColor: '#f43f5e',
+        bstNarrative: {
+          action: 'overflow',
+          badge: 'CAPACITY',
+          reason: `Tree capacity limit reached (${BST_CAPACITY} nodes). Remove nodes before inserting new keys.`,
+          isError: true,
+        },
+      });
+      return false;
+    }
+
+    const res = tree.insert(num);
+    if (!res.success) {
+      if (get().soundEnabled) playFrequencyTone(20, 100, 140);
+      set({
+        status: `Key ${num} already exists in BST!`,
+        statusColor: '#f43f5e',
+        bstNarrative: {
+          action: 'duplicate',
+          badge: 'DUPLICATE',
+          reason: `Duplicate key ${num} rejected. Standard BST invariant requires all keys to be unique.`,
+          isError: true,
+        },
+      });
+      return false;
+    }
+
+    if (get().soundEnabled) playFrequencyTone(num, 100, 75);
+
+    const cloned = Object.assign(new BST(), tree);
+    set((s) => ({
+      bst: cloned,
+      bstActiveNodes: [num],
+      bstFoundNode: null,
+      metrics: {
+        ...s.metrics,
+        accesses: s.metrics.accesses + 1,
+        comparisons: s.metrics.comparisons + cloned.getHeight(),
+      },
+      status: `Inserted ${num} into BST`,
+      statusColor: '#10b981',
+      bstNarrative: {
+        action: 'insert',
+        badge: 'INSERT',
+        reason: `Inserted key ${num}. Tree depth: ${cloned.getHeight()}, node count: ${cloned.getNodeCount()}/${BST_CAPACITY}.`,
+      },
+    }));
+
+    setTimeout(() => {
+      if (get().bstActiveNodes.includes(num)) {
+        set({ bstActiveNodes: [] });
+      }
+    }, 900);
+
+    return true;
+  },
+  bstDelete: (val) => {
+    const num = Number(val);
+    const tree = get().bst;
+    if (!tree || !tree.root) {
+      set({
+        status: 'BST is empty: nothing to delete',
+        statusColor: '#f43f5e',
+        bstNarrative: {
+          action: 'underflow',
+          badge: 'EMPTY',
+          reason: 'Cannot delete from empty tree. Tree contains 0 nodes.',
+          isError: true,
+        },
+      });
+      return false;
+    }
+
+    const removed = tree.remove(num);
+    if (!removed) {
+      if (get().soundEnabled) playFrequencyTone(20, 100, 140);
+      set({
+        status: `Key ${num} not found in BST`,
+        statusColor: '#f43f5e',
+        bstNarrative: {
+          action: 'not_found',
+          badge: 'MISS',
+          reason: `Cannot delete key ${num}: key does not exist in the BST.`,
+          isError: true,
+        },
+      });
+      return false;
+    }
+
+    if (get().soundEnabled) playFrequencyTone(num, 100, 60);
+
+    const cloned = Object.assign(new BST(), tree);
+    set((s) => ({
+      bst: cloned,
+      bstActiveNodes: [],
+      bstFoundNode: null,
+      metrics: { ...s.metrics, accesses: s.metrics.accesses + 1 },
+      status: `Deleted ${num} from BST`,
+      statusColor: '#10b981',
+      bstNarrative: {
+        action: 'delete',
+        badge: 'DELETE',
+        reason: `Removed key ${num}. Remaining nodes: ${cloned.getNodeCount()}. Subtree pointers updated.`,
+      },
+    }));
+
+    return true;
+  },
+  bstSearch: async (target) => {
+    const num = Number(target);
+    const tree = get().bst;
+    if (!tree || !tree.root) {
+      set({
+        status: 'BST is empty: search aborted',
+        statusColor: '#f43f5e',
+        bstNarrative: {
+          action: 'underflow',
+          badge: 'EMPTY',
+          reason: 'Tree is empty. Cannot search.',
+          isError: true,
+        },
+      });
+      return false;
+    }
+
+    const { path, found } = tree.searchPath(num);
+    set({ bstFoundNode: null, bstActiveNodes: [] });
+
+    for (let i = 0; i < path.length; i++) {
+      const cur = path[i];
+      const isLast = i === path.length - 1;
+      const isMatch = isLast && found;
+
+      set((s) => ({
+        bstActiveNodes: [cur],
+        metrics: {
+          ...s.metrics,
+          comparisons: s.metrics.comparisons + 1,
+          accesses: s.metrics.accesses + 1,
+        },
+        status: isMatch
+          ? `Found ${num} at node!`
+          : `Comparing ${num} with ${cur}: ${num < cur ? `${num} < ${cur}, branch left` : `${num} > ${cur}, branch right`}`,
+        statusColor: isMatch ? '#10b981' : '#3b82f6',
+        bstNarrative: {
+          action: 'compare',
+          badge: 'COMPARE',
+          reason: isMatch
+            ? `Target ${num} matches current node ${cur}. Value found!`
+            : `Inspecting node ${cur}. Target ${num} is ${num < cur ? `less than ${cur}, descending to left subtree` : `greater than ${cur}, descending to right subtree`}.`,
+        },
+      }));
+
+      if (get().soundEnabled) playFrequencyTone(cur, 100, 60);
+      await new Promise((r) => setTimeout(r, 420));
+    }
+
+    if (found) {
+      if (get().soundEnabled) playFrequencyTone(num + 30, 100, 150);
+      set({
+        bstFoundNode: num,
+        bstActiveNodes: [],
+        status: `Found key ${num} in ${path.length} comparison${path.length > 1 ? 's' : ''}`,
+        statusColor: '#10b981',
+        bstNarrative: {
+          action: 'found',
+          badge: 'FOUND',
+          reason: `Found key ${num} successfully after traversing ${path.length} node${path.length > 1 ? 's' : ''} [${path.join(' → ')}].`,
+        },
+      });
+      setTimeout(() => {
+        if (get().bstFoundNode === num) {
+          set({ bstFoundNode: null });
+        }
+      }, 2000);
+      return true;
+    } else {
+      if (get().soundEnabled) playFrequencyTone(20, 100, 150);
+      set({
+        bstFoundNode: null,
+        bstActiveNodes: [],
+        status: `Key ${num} not found in BST`,
+        statusColor: '#f43f5e',
+        bstNarrative: {
+          action: 'not_found',
+          badge: 'NOT FOUND',
+          reason: `Key ${num} was not found in the BST. Reached null child after path [${path.join(' → ')}].`,
+          isError: true,
+        },
+      });
+      return false;
+    }
+  },
+  bstRunTraversal: async (type) => {
+    const tree = get().bst;
+    if (!tree || !tree.root) {
+      set({
+        status: 'BST is empty: cannot traverse',
+        statusColor: '#f43f5e',
+        bstNarrative: {
+          action: 'underflow',
+          badge: 'EMPTY',
+          reason: 'Tree is empty. Cannot run traversal.',
+          isError: true,
+        },
+      });
+      return [];
+    }
+
+    const tMode = type || get().bstMode;
+    let sequence: number[] = [];
+    let title = 'In-Order';
+    if (tMode === 'preorder') {
+      sequence = tree.preorder();
+      title = 'Pre-Order (Root → L → R)';
+    } else if (tMode === 'postorder') {
+      sequence = tree.postorder();
+      title = 'Post-Order (L → R → Root)';
+    } else if (tMode === 'levelorder') {
+      sequence = tree.levelOrder();
+      title = 'Level-Order (BFS)';
+    } else {
+      sequence = tree.inorder();
+      title = 'In-Order (L → Root → R)';
+    }
+
+    set({
+      bstTraversalOutput: [],
+      bstActiveNodes: [],
+      bstFoundNode: null,
+      status: `Starting ${title} traversal...`,
+      statusColor: '#3b82f6',
+      bstNarrative: {
+        action: 'traversal_start',
+        badge: 'TRAVERSAL',
+        reason: `Starting ${title} traversal across ${sequence.length} nodes.`,
+      },
+    });
+
+    const accumulated: number[] = [];
+    for (let i = 0; i < sequence.length; i++) {
+      const val = sequence[i];
+      accumulated.push(val);
+      set((s) => ({
+        bstActiveNodes: [val],
+        bstTraversalOutput: [...accumulated],
+        metrics: { ...s.metrics, accesses: s.metrics.accesses + 1 },
+        status: `Visiting node ${val} (${i + 1}/${sequence.length})`,
+        statusColor: '#3b82f6',
+        bstNarrative: {
+          action: 'visit',
+          badge: `NODE ${i + 1}/${sequence.length}`,
+          reason: `Visited node ${val}. Current sequence output: [${accumulated.join(', ')}].`,
+        },
+      }));
+
+      if (get().soundEnabled) playFrequencyTone(val, 100, 60);
+      await new Promise((r) => setTimeout(r, 340));
+    }
+
+    set({
+      bstActiveNodes: [],
+      status: `Completed ${title} traversal: [${accumulated.join(', ')}]`,
+      statusColor: '#10b981',
+      bstNarrative: {
+        action: 'complete',
+        badge: 'COMPLETE',
+        reason: `${title} complete: visited all ${sequence.length} nodes. Output sequence: [${accumulated.join(', ')}].`,
+      },
+    });
+
+    return sequence;
+  },
+  bstFindMin: () => {
+    const tree = get().bst;
+    if (!tree || !tree.root) return null;
+    let cur = tree.root;
+    const spine: number[] = [];
+    while (cur) {
+      spine.push(cur.val);
+      if (!cur.left) break;
+      cur = cur.left;
+    }
+    const minVal = cur.val;
+    set({
+      bstActiveNodes: spine,
+      bstFoundNode: minVal,
+      status: `Minimum key is ${minVal} (leftmost leaf)`,
+      statusColor: '#10b981',
+      bstNarrative: {
+        action: 'min',
+        badge: 'MINIMUM',
+        reason: `Traversed leftmost spine [${spine.join(' → ')}]. Found minimum key ${minVal} with no left child.`,
+      },
+    });
+    if (get().soundEnabled) playFrequencyTone(minVal, 100, 100);
+    setTimeout(() => {
+      set({ bstActiveNodes: [], bstFoundNode: null });
+    }, 2000);
+    return minVal;
+  },
+  bstFindMax: () => {
+    const tree = get().bst;
+    if (!tree || !tree.root) return null;
+    let cur = tree.root;
+    const spine: number[] = [];
+    while (cur) {
+      spine.push(cur.val);
+      if (!cur.right) break;
+      cur = cur.right;
+    }
+    const maxVal = cur.val;
+    set({
+      bstActiveNodes: spine,
+      bstFoundNode: maxVal,
+      status: `Maximum key is ${maxVal} (rightmost leaf)`,
+      statusColor: '#10b981',
+      bstNarrative: {
+        action: 'max',
+        badge: 'MAXIMUM',
+        reason: `Traversed rightmost spine [${spine.join(' → ')}]. Found maximum key ${maxVal} with no right child.`,
+      },
+    });
+    if (get().soundEnabled) playFrequencyTone(maxVal, 100, 100);
+    setTimeout(() => {
+      set({ bstActiveNodes: [], bstFoundNode: null });
+    }, 2000);
+    return maxVal;
+  },
+  bstLoadPreset: (preset) => {
+    const tree = new BST();
+    const values =
+      preset === 'balanced'
+        ? [50, 25, 75, 12, 36, 62, 88]
+        : [10, 20, 30, 40, 50];
+
+    values.forEach((v) => tree.insert(v));
+
+    set({
+      bst: tree,
+      bstActiveNodes: [],
+      bstFoundNode: null,
+      bstTraversalOutput: null,
+      metrics: { comparisons: 0, swaps: 0, accesses: values.length },
+      status: `Loaded ${preset} BST preset (${values.length} nodes)`,
+      statusColor: '#10b981',
+      bstNarrative: {
+        action: 'preset',
+        badge: preset.toUpperCase(),
+        reason:
+          preset === 'balanced'
+            ? 'Loaded balanced tree preset with optimal O(log n) height.'
+            : 'Loaded degenerate skewed tree preset demonstrating O(n) worst-case degradation.',
+      },
+    });
+  },
   setHeap: (heap) => set({ heap }),
   setHeapType: (type) => set({ heapType: type }),
 
@@ -1270,7 +1713,26 @@ export const useAppStore = create<AppState>((set, get) => ({
   hidePlayControls: (hide) => set({ hidePlayback: hide }),
   showGenerateButton: (show) => set({ showGenerate: show }),
   stopPlay: () => get().pause(),
-  initBST: () => set({ bst: new BST() }),
+  initBST: () => {
+    const tree = new BST();
+    [50, 25, 75, 12, 36, 62, 88].forEach((v) => tree.insert(v));
+    set({
+      bst: tree,
+      bstMode: 'bst',
+      bstActiveNodes: [],
+      bstFoundNode: null,
+      bstTraversalOutput: null,
+      metrics: { comparisons: 0, swaps: 0, accesses: 7 },
+      status: 'Ready',
+      statusColor: '',
+      bstNarrative: {
+        action: 'ready',
+        badge: 'READY',
+        reason: 'Binary Search Tree initialized with 7 balanced nodes. Ready for operations.',
+      },
+    });
+    get().loadInfo(BST_INFOS.bst);
+  },
   initHeap: (type) => {
     const heapType = (type === 'maxheap' ? 'max' : 'min') as 'min' | 'max';
     set({ heap: new Heap(heapType), heapType });

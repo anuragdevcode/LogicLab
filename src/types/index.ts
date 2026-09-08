@@ -176,6 +176,15 @@ export interface LinkedListNarrative {
   isError?: boolean;
 }
 
+export type BSTMode = 'bst' | 'inorder' | 'preorder' | 'postorder' | 'levelorder';
+
+export interface BSTNarrative {
+  action: string;
+  reason: string;
+  badge: string;
+  isError?: boolean;
+}
+
 // ─── Module Configuration ───
 export interface ModuleConfig {
   title: string;

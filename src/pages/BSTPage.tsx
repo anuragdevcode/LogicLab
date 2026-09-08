@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { TreeCanvas } from '@/components/canvas/TreeCanvas';
 import BSTControls from '@/components/controls/BSTControls';
-import { BST_INFO } from '@/engines';
+import { BST_INFOS } from '@/engines';
 
 export default function BSTPage() {
   const setModule = useAppStore((s) => s.setModule);
@@ -14,26 +14,34 @@ export default function BSTPage() {
   const pause = useAppStore((s) => s.pause);
   const setModuleTitle = useAppStore((s) => s.setModuleTitle);
   const setAlgoList = useAppStore((s) => s.setAlgoList);
+  const setCustomControls = useAppStore((s) => s.setCustomControls);
 
   useEffect(() => {
     setModule('bst');
     setAlgo('bst');
     setModuleTitle('Binary Search Tree');
-    setAlgoList([]);
+    setAlgoList([
+      { id: 'bst', name: 'Operations' },
+      { id: 'inorder', name: 'In-Order' },
+      { id: 'preorder', name: 'Pre-Order' },
+      { id: 'postorder', name: 'Post-Order' },
+      { id: 'levelorder', name: 'Level-Order (BFS)' },
+    ]);
     initBST();
-    loadInfo(BST_INFO);
+    loadInfo(BST_INFOS.bst);
     hidePlayControls(true);
     showGenerateButton(false);
+    setCustomControls(<BSTControls />);
 
-    return () => { pause(); };
+    return () => {
+      pause();
+      setCustomControls(null);
+    };
   }, []);
 
   return (
-    <div className="relative w-full h-full flex flex-col">
-      <BSTControls />
-      <div className="flex-1 relative">
-        <TreeCanvas type="bst" />
-      </div>
+    <div className="relative w-full h-full flex flex-col bg-surface">
+      <TreeCanvas type="bst" />
     </div>
   );
 }
