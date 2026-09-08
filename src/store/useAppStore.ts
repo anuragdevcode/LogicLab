@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ModuleId, Step, Metrics, MetricsDelta, ComplexityInfo, AlgoListItem } from '@/types';
+import { ModuleId, Step, Metrics, MetricsDelta, ComplexityInfo, AlgoListItem, AlgorithmMeta } from '@/types';
 import { BST } from '@/engines/bst';
 import { Heap } from '@/engines/heap';
 import {
@@ -38,6 +38,7 @@ export interface AppState {
   pseudocode: string[];
   setPseudocode: (lines: string[]) => void;
   currentLine: number;
+  algoMeta: AlgorithmMeta | null;
 
   // Playback
   steps: Step[];
@@ -50,9 +51,15 @@ export interface AppState {
   // Array data
   arr: number[];
   target: number;
-  generateArray: (forSearch?: boolean) => void;
+  generateArray: (forSearch?: boolean, size?: number) => void;
+  setArrayPreset: (preset: 'random' | 'nearlySorted' | 'reversed' | 'fewUnique', count?: number) => void;
   setArr: (arr: number[]) => void;
   setTarget: (target: number) => void;
+
+  // Sound
+  soundEnabled: boolean;
+  toggleSound: () => void;
+  setSoundEnabled: (enabled: boolean) => void;
 
   // Metrics
   metrics: Metrics;
@@ -181,6 +188,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   pseudocode: [],
   setPseudocode: (lines) => set({ pseudocode: lines }),
   currentLine: -1,
+  algoMeta: null,
 
   // Playback
   steps: [],
@@ -193,8 +201,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Array data
   arr: [],
   target: 42,
-  generateArray: (forSearch = false) => {
-    const n = 20;
+  generateArray: (forSearch = false, size = 20) => {
+    const n = Math.max(5, Math.min(60, size || 20));
     const newArr = Array.from({ length: n }, () => Math.floor(Math.random() * 90) + 10);
     if (forSearch) {
       newArr.sort((a, b) => a - b);
@@ -202,9 +210,42 @@ export const useAppStore = create<AppState>((set, get) => ({
     const newTarget = forSearch ? newArr[Math.floor(Math.random() * n)] : get().target;
     set({ arr: newArr, target: newTarget, steps: [], stepIdx: 0 });
     get().resetMetrics();
+    get().buildSteps();
   },
-  setArr: (arr) => set({ arr }),
+  setArrayPreset: (preset: 'random' | 'nearlySorted' | 'reversed' | 'fewUnique', count = 20) => {
+    const n = Math.max(5, Math.min(60, count || 20));
+    let newArr: number[] = [];
+    if (preset === 'random') {
+      newArr = Array.from({ length: n }, () => Math.floor(Math.random() * 90) + 10);
+    } else if (preset === 'nearlySorted') {
+      newArr = Array.from({ length: n }, (_, i) => Math.floor(10 + (i * 85) / n));
+      const perturbCount = Math.max(1, Math.floor(n * 0.15));
+      for (let k = 0; k < perturbCount; k++) {
+        const i1 = Math.floor(Math.random() * n);
+        const i2 = Math.min(n - 1, i1 + 1);
+        [newArr[i1], newArr[i2]] = [newArr[i2], newArr[i1]];
+      }
+    } else if (preset === 'reversed') {
+      newArr = Array.from({ length: n }, (_, i) => Math.floor(95 - (i * 85) / n));
+    } else if (preset === 'fewUnique') {
+      const pool = [18, 38, 58, 78, 92];
+      newArr = Array.from({ length: n }, () => pool[Math.floor(Math.random() * pool.length)]);
+    }
+    set({ arr: newArr, steps: [], stepIdx: 0 });
+    get().resetMetrics();
+    get().buildSteps();
+  },
+  setArr: (arr) => {
+    set({ arr, steps: [], stepIdx: 0 });
+    get().resetMetrics();
+    get().buildSteps();
+  },
   setTarget: (target) => set({ target }),
+
+  // Sound
+  soundEnabled: false,
+  toggleSound: () => set((state) => ({ soundEnabled: !state.soundEnabled })),
+  setSoundEnabled: (enabled) => set({ soundEnabled: enabled }),
 
   // Metrics
   metrics: { comparisons: 0, swaps: 0, accesses: 0 },
@@ -317,6 +358,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       algoName: info.name || '',
       complexityInfo: info.complexity || null,
       pseudocode: info.pseudo || [],
+      algoMeta: info as unknown as AlgorithmMeta,
     });
   },
   hidePlayControls: (hide) => set({ hidePlayback: hide }),

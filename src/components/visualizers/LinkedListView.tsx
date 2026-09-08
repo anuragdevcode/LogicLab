@@ -67,9 +67,11 @@ const LinkedListView: React.FC = () => {
                   >
                     <div className="ll-box">
                       <div className="ll-data">{item}</div>
-                      <div className="ll-next">●</div>
+                      <div className="ll-next flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                      </div>
                     </div>
-                    <div className="ll-arrow">→</div>
+                    <div className="ll-arrow font-mono text-textSecondary">→</div>
                   </motion.div>
                 ))}
               </AnimatePresence>

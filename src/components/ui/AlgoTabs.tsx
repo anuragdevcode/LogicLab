@@ -9,16 +9,16 @@ const AlgoTabs: React.FC = () => {
   if (!algoList || algoList.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
       {algoList.map((item) => {
         const isActive = item.id === algo;
         return (
           <button
             key={item.id}
-            className={`whitespace-nowrap px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 ${
+            className={`whitespace-nowrap px-2.5 py-1 rounded-md text-xs transition-all duration-150 font-mono ${
               isActive
-                ? 'bg-accent/15 text-accent border border-accent/30'
-                : 'text-gray-400 hover:text-gray-200 hover:bg-[#1e293b]'
+                ? 'bg-white/10 text-white font-semibold shadow-sm border border-white/10'
+                : 'text-textSecondary hover:text-textPrimary hover:bg-white/[0.04]'
             }`}
             onClick={() => setAlgo(item.id)}
           >

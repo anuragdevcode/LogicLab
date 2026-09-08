@@ -29,6 +29,10 @@ export interface SortStep {
   swap: boolean;
   done: number[];
   pivot?: number;
+  pointers?: Record<string, number>;
+  range?: [number, number];
+  reason?: string;
+  action?: 'compare' | 'swap' | 'pivot' | 'shift' | 'insert' | 'partition' | 'done' | 'split';
   line: number;
   metrics?: MetricsDelta;
 }
@@ -118,8 +122,13 @@ export interface ComplexityInfo {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface AlgorithmMeta<S = unknown> {
   name: string;
+  category?: string;
   complexity: ComplexityInfo;
   pseudo: string[];
+  description?: string;
+  stability?: boolean;
+  inPlace?: boolean;
+  whenToUse?: string;
   generator?: (...args: any[]) => Generator<S>;
 }
 
