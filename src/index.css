@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Global Base Styles ── */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #root {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0b0f19;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+  }
+}
+
+/* ── Reusable Component Classes ── */
+@layer components {
+  .nav-btn {
+    @apply w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium
+           text-textSecondary hover:bg-surface-tertiary hover:text-textPrimary
+           transition-all duration-200 cursor-pointer border-none bg-transparent;
+  }
+
+  .nav-btn.active {
+    @apply bg-accent/10 text-accent;
+  }
+
+  .btn-primary {
+    @apply bg-accent hover:bg-accent/90 text-white font-semibold px-4 py-2 rounded-lg
+           transition-colors duration-200 border-none cursor-pointer;
+  }
+
+  .btn-secondary {
+    @apply bg-surface-tertiary hover:bg-surface-tertiary/80 text-textPrimary font-medium
+           px-3 py-2 rounded-lg transition-colors duration-200 border-none cursor-pointer;
+  }
+
+  .ctrl-input {
+    @apply bg-surface-secondary border border-surface-tertiary text-textPrimary rounded-md
+           px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-accent
+           transition-colors duration-200;
+  }
+
+  .metric-card {
+    @apply flex flex-col items-center justify-center gap-0.5 px-3 py-2
+           bg-surface-secondary rounded-lg border border-surface-tertiary;
+  }
+
+  .pseudo-line {
+    @apply px-3 py-1 font-mono text-xs text-textSecondary border-l-2 border-transparent
+           transition-all duration-200;
+  }
+
+  .pseudo-line.active {
+    @apply border-l-accent bg-accent/5 text-textPrimary;
+  }
+
+  /* Speed slider styling */
+  input[type="range"] {
+    @apply w-24 h-1.5 bg-surface-tertiary rounded-full appearance-none cursor-pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 bg-accent rounded-full cursor-pointer
+           shadow-[0_0_8px_rgba(59,130,246,0.4)];
+  }
+
+  /* Canvas container */
+  .viz-area {
+    @apply relative flex-1 min-h-[180px] overflow-hidden;
+  }
+
+  .viz-area canvas {
+    @apply absolute inset-0 w-full h-full;
+  }
+
+  .dom-layer {
+    @apply absolute inset-0 overflow-auto pointer-events-none;
+  }
+
+  .dom-layer > * {
+    @apply pointer-events-auto;
+  }
+
+  /* Stack / Queue / LinkedList visual styles */
+  .stack-frame {
+    @apply relative bg-surface-secondary border border-surface-tertiary rounded-lg
+           px-5 py-3 font-mono text-sm text-textPrimary text-center
+           transition-all duration-300;
+  }
+
+  .stack-frame.highlight {
+    @apply border-accent bg-accent/10 shadow-[0_0_12px_rgba(59,130,246,0.2)];
+  }
+
+  .queue-cell {
+    @apply bg-surface-secondary border border-surface-tertiary rounded-lg
+           px-4 py-3 font-mono text-sm text-textPrimary text-center
+           min-w-[56px] transition-all duration-300;
+  }
+
+  .queue-cell.front {
+    @apply border-accent-green bg-accent-green/10;
+  }
+
+  .queue-cell.back {
+    @apply border-accent bg-accent/10;
+  }
+
+  .ll-node {
+    @apply flex items-center gap-0;
+  }
+
+  .ll-box {
+    @apply flex border border-surface-tertiary rounded-lg overflow-hidden bg-surface-secondary;
+  }
+
+  .ll-data {
+    @apply px-4 py-2.5 font-mono text-sm text-textPrimary
+           border-r border-surface-tertiary;
+  }
+
+  .ll-next {
+    @apply px-3 py-2.5 text-accent text-xs font-mono;
+  }
+
+  .ll-arrow {
+    @apply text-textSecondary text-lg mx-1;
+  }
+
+  /* DP Table */
+  .dp-cell {
+    @apply flex items-center justify-center bg-surface-secondary border border-surface-tertiary
+           text-sm font-mono text-textSecondary min-w-[44px] min-h-[36px]
+           transition-all duration-300;
+  }
+
+  .dp-cell.active {
+    @apply border-accent bg-accent/15 text-textPrimary shadow-[0_0_8px_rgba(59,130,246,0.2)];
+  }
+
+  .dp-cell.done {
+    @apply bg-accent-green/10 text-accent-green border-accent-green/30;
+  }
+
+  .dp-cell.header {
+    @apply bg-surface-tertiary/50 text-textSecondary font-semibold;
+  }
+
+  /* Viz controls overlay (BST/Heap floating controls) */
+  .viz-controls-overlay {
+    @apply absolute top-3 right-3 flex items-center gap-2 z-10
+           bg-surface-secondary/90 backdrop-blur-sm rounded-lg
+           border border-surface-tertiary px-3 py-2;
+  }
+}

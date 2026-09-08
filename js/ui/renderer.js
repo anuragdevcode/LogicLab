@@ -2,15 +2,15 @@
 
 window.Renderer = (() => {
   const C = {
-    bg:      '#0a0e1a',
-    base:    '#1e2a4a',
-    accent:  '#6384ff',
-    accent2: '#00e5c3',
-    accent3: '#ff6b6b',
-    accent4: '#ffd166',
-    text:    '#e8ecf8',
-    text2:   '#8a95b8',
-    border:  'rgba(99,132,255,0.25)',
+    bg:      '#0b0f19',
+    base:    '#1e293b',
+    accent:  '#3b82f6',
+    accent2: '#10b981',
+    accent3: '#f43f5e',
+    accent4: '#f59e0b',
+    text:    '#f8fafc',
+    text2:   '#94a3b8',
+    border:  '#1e293b',
   };
 
   function clear(ctx, w, h) {
@@ -23,7 +23,7 @@ window.Renderer = (() => {
     clear(ctx, w, h);
     const { arr, cmp = [], swap = false, done = [], pivot = -1 } = state;
     const n = arr.length;
-    const maxVal = Math.max(...arr);
+    const maxVal = Math.max(...arr, 1);
     const barW = Math.floor((w - 40) / n) - 2;
     const padX = 20;
     const maxH = h - 70;
@@ -68,9 +68,9 @@ window.Renderer = (() => {
   // ── Search bars ─────────────────────────────────────────────
   function drawSearchBars(ctx, w, h, state) {
     clear(ctx, w, h);
-    const { arr, current, found, searched = [], lo, hi, mid } = state;
+    const { arr, target, current, found, searched = [], lo, hi, mid } = state;
     const n = arr.length;
-    const maxVal = Math.max(...arr);
+    const maxVal = Math.max(...arr, 1);
     const barW = Math.floor((w - 40) / n) - 2;
     const padX = 20;
     const maxH = h - 90;
@@ -104,6 +104,13 @@ window.Renderer = (() => {
       }
     }
 
+    if (target !== undefined) {
+      ctx.fillStyle = C.text2;
+      ctx.font = '12px Space Mono';
+      ctx.textAlign = 'left';
+      ctx.fillText(`Target: ${target}`, 20, 24);
+    }
+
     // Labels for binary search
     if (lo !== undefined && lo >= 0) {
       const lx = padX + lo * (barW + 2) + barW / 2;
@@ -133,7 +140,7 @@ window.Renderer = (() => {
     clear(ctx, w, h);
     if (!layout || !layout.length) {
       ctx.fillStyle = C.text2;
-      ctx.font = '14px DM Sans';
+      ctx.font = '14px Outfit';
       ctx.textAlign = 'center';
       ctx.fillText('Insert nodes using the controls above', w/2, h/2);
       return;
@@ -178,15 +185,22 @@ window.Renderer = (() => {
   // ── Graph ────────────────────────────────────────────────────
   function drawGraph(ctx, w, h, nodes, edges, state = {}) {
     clear(ctx, w, h);
-    const { visited = new Set(), current = -1, highlight = -1, dist = {}, prev = {} } = state;
+    const { visited = new Set(), current = -1, highlight = -1, dist = {}, prev = {}, path = [], start = -1, target = -1 } = state;
     const R = 24;
     const nx = (n) => n.x * w;
     const ny = (n) => n.y * h;
+    const pathEdges = new Set();
+    for (let i = 1; i < path.length; i++) {
+      pathEdges.add(`${path[i - 1]}-${path[i]}`);
+      pathEdges.add(`${path[i]}-${path[i - 1]}`);
+    }
 
     // edges
     edges.forEach(e => {
       const from = nodes[e.from], to = nodes[e.to];
-      const inPath = prev[e.to] === e.from || prev[e.from] === e.to;
+      const inPath = pathEdges.size
+        ? pathEdges.has(`${e.from}-${e.to}`)
+        : (prev[e.to] === e.from || prev[e.from] === e.to);
       ctx.strokeStyle = inPath ? C.accent4 : C.border;
       ctx.lineWidth = inPath ? 2 : 1.2;
       ctx.beginPath();
@@ -209,11 +223,15 @@ window.Renderer = (() => {
       const isVisited = visited.has(n.id);
       const isCurrent = n.id === current;
       const isHL = n.id === highlight;
+      const isStart = n.id === start;
+      const isTarget = n.id === target;
 
       let fill = C.base;
       if (isCurrent) fill = C.accent;
       else if (isHL) fill = C.accent4;
-      else if (isVisited) fill = '#1a3040';
+      else if (isVisited) fill = '#1e3a5f';
+      else if (isStart) fill = '#1e3a5f';
+      else if (isTarget) fill = '#3d2e0a';
 
       if (isCurrent || isHL) { ctx.shadowColor = fill; ctx.shadowBlur = 18; }
 
@@ -221,12 +239,12 @@ window.Renderer = (() => {
       ctx.arc(x, y, R, 0, Math.PI * 2);
       ctx.fillStyle = fill;
       ctx.fill();
-      ctx.strokeStyle = isCurrent ? C.accent2 : isVisited ? C.accent : C.border;
+      ctx.strokeStyle = isCurrent ? C.accent2 : isTarget ? C.accent4 : isStart ? C.accent : isVisited ? C.accent : C.border;
       ctx.lineWidth = isCurrent ? 2.5 : 1.5;
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = isCurrent ? '#fff' : C.text;
       ctx.font = 'bold 14px Space Mono';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';

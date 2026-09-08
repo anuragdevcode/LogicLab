@@ -19,8 +19,16 @@ const App = {
   llData: [],
   graphAlgo: 'bfs',
   graphState: null,
+  graphStart: 0,
+  graphTarget: 5,
   dpAlgo: 'lcs',
   dpState: null,
+  dpConfig: {
+    s1: 'ABCBDAB',
+    s2: 'BDCAB',
+    items: [{w: 2, v: 6}, {w: 2, v: 10}, {w: 3, v: 12}],
+    capacity: 5,
+  },
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────
@@ -28,6 +36,7 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const domLayer = document.getElementById('dom-layer');
 const algoTabs = document.getElementById('algo-tabs');
+const customControls = document.getElementById('custom-controls');
 const moduleTitle = document.getElementById('module-title');
 const complexityBadge = document.getElementById('complexity-badge');
 const pseudocodeBox = document.getElementById('pseudocode-box');
@@ -133,15 +142,19 @@ function initModule() {
   const m = App.module;
   resetMetrics();
   clearDOM();
+  customControls.innerHTML = '';
   Renderer.clear(ctx, canvas.width, canvas.height);
   hidePlayControls(false);
+  showGenerateButton(true);
 
   if (m === 'sorting') {
     generateArray();
     loadInfo(SortingEngine.ALGORITHMS[App.algo]);
+    renderModuleControls();
   } else if (m === 'searching') {
     generateArray(true);
     loadInfo(SearchingEngine.ALGORITHMS[App.algo]);
+    renderModuleControls();
   } else if (m === 'stack') {
     hidePlayControls(true);
     // Reset data each time algo switches (stack vs queue are different)
@@ -169,16 +182,19 @@ function initModule() {
     redraw();
     renderHeapControls();
   } else if (m === 'graph') {
+    showGenerateButton(false);
     App.graphState = null;
     App.steps = [];
     App.stepIdx = 0;
     loadInfo(GraphEngine.INFO[App.algo]);
-    Renderer.drawGraph(ctx, canvas.width, canvas.height, GraphEngine.DEFAULT_NODES, GraphEngine.DEFAULT_EDGES, {});
-    renderGraphControls();
+    renderModuleControls();
+    redraw();
   } else if (m === 'dp') {
+    showGenerateButton(false);
     hidePlayControls(false);
     App.dpState = null;
     loadInfo(DPEngine.ALGORITHMS[App.algo]);
+    renderModuleControls();
     initDP();
   }
 }
@@ -188,7 +204,217 @@ function hidePlayControls(hide) {
     const el = document.getElementById(id);
     if (el) el.style.display = hide ? 'none' : '';
   });
-  document.querySelector('.ctrl-label').style.display = hide ? 'none' : '';
+  const ctrlLabel = document.querySelector('.ctrl-label');
+  if (ctrlLabel) ctrlLabel.style.display = hide ? 'none' : '';
+  // Hide entire controls strip when all play controls are hidden and no custom controls
+  const controls = document.getElementById('controls');
+  if (controls) {
+    controls.classList.toggle('hidden', hide && !customControls.innerHTML.trim());
+  }
+}
+
+function showGenerateButton(show) {
+  const btn = document.getElementById('btn-generate');
+  if (btn) btn.style.display = show ? '' : 'none';
+}
+
+// ─── Module-specific controls ────────────────────────────────
+function renderModuleControls() {
+  customControls.innerHTML = '';
+  if (App.module === 'sorting' || App.module === 'searching') renderArrayControls();
+  else if (App.module === 'graph') renderGraphSelectors();
+  else if (App.module === 'dp') renderDPControls();
+}
+
+function makeField(labelText, control) {
+  const label = document.createElement('label');
+  label.className = 'control-field';
+  const span = document.createElement('span');
+  span.textContent = labelText;
+  label.append(span, control);
+  return label;
+}
+
+function parseNumberList(raw) {
+  const parts = raw.split(/[\s,]+/).filter(Boolean);
+  const values = parts.map(Number);
+  if (!values.length || values.some(v => !Number.isFinite(v) || v < 0)) return null;
+  return values.slice(0, 40);
+}
+
+function syncArrayControls() {
+  const arrInput = document.getElementById('array-input');
+  const targetInput = document.getElementById('target-input');
+  if (arrInput) arrInput.value = App.arr.join(', ');
+  if (targetInput) targetInput.value = App.target;
+}
+
+function rebuildStepsAndRedraw() {
+  stopPlay();
+  App.steps = [];
+  App.stepIdx = 0;
+  resetMetrics();
+  buildSteps();
+  redraw();
+}
+
+function renderArrayControls() {
+  const arrInput = document.createElement('input');
+  arrInput.id = 'array-input';
+  arrInput.className = 'control-input array-input';
+  arrInput.placeholder = '8, 4, 12, 1';
+
+  const useBtn = document.createElement('button');
+  useBtn.textContent = 'Use Values';
+
+  const applyValues = () => {
+    const values = parseNumberList(arrInput.value);
+    if (!values) {
+      mStatus.textContent = 'Enter numbers separated by commas or spaces';
+      mStatus.style.color = 'var(--accent3)';
+      return;
+    }
+    let nextTarget = App.target;
+    if (App.module === 'searching') {
+      nextTarget = Number(document.getElementById('target-input').value);
+      if (!Number.isFinite(nextTarget)) {
+        mStatus.textContent = 'Enter a search key';
+        mStatus.style.color = 'var(--accent3)';
+        return;
+      }
+    }
+
+    App.arr = values;
+    App.target = nextTarget;
+    rebuildStepsAndRedraw();
+    syncArrayControls();
+    mStatus.textContent = App.module === 'searching'
+      ? `Searching for ${App.target}`
+      : `Using ${App.arr.length} values`;
+    mStatus.style.color = 'var(--accent)';
+  };
+
+  customControls.append(makeField('Values', arrInput));
+
+  if (App.module === 'searching') {
+    const targetInput = document.createElement('input');
+    targetInput.id = 'target-input';
+    targetInput.className = 'control-input small';
+    targetInput.type = 'number';
+    targetInput.placeholder = 'Key';
+    customControls.append(makeField('Key', targetInput));
+  }
+
+  customControls.append(useBtn);
+  useBtn.addEventListener('click', applyValues);
+  arrInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyValues(); });
+  syncArrayControls();
+}
+
+function renderGraphSelectors() {
+  const makeSelect = (value) => {
+    const select = document.createElement('select');
+    select.className = 'control-select';
+    GraphEngine.DEFAULT_NODES.forEach(node => {
+      const option = document.createElement('option');
+      option.value = node.id;
+      option.textContent = node.label;
+      select.appendChild(option);
+    });
+    select.value = value;
+    return select;
+  };
+
+  const startSelect = makeSelect(App.graphStart);
+  const targetSelect = makeSelect(App.graphTarget);
+
+  const applyGraphChoice = () => {
+    App.graphStart = Number(startSelect.value);
+    App.graphTarget = Number(targetSelect.value);
+    resetGraphView();
+  };
+
+  startSelect.addEventListener('change', applyGraphChoice);
+  targetSelect.addEventListener('change', applyGraphChoice);
+
+  customControls.append(
+    makeField('Start', startSelect),
+    makeField('Destination', targetSelect)
+  );
+}
+
+function parseKnapsackItems(raw) {
+  const items = raw.split(',').map(part => {
+    const [w, v] = part.trim().split(':').map(Number);
+    return { w, v };
+  });
+  if (!items.length || items.length > 6) return null;
+  if (items.some(item => !Number.isInteger(item.w) || !Number.isFinite(item.v) || item.w <= 0 || item.v < 0)) {
+    return null;
+  }
+  return items;
+}
+
+function renderDPControls() {
+  if (App.algo === 'lcs') {
+    const s1 = document.createElement('input');
+    s1.className = 'control-input small';
+    s1.value = App.dpConfig.s1;
+    s1.maxLength = 8;
+
+    const s2 = document.createElement('input');
+    s2.className = 'control-input small';
+    s2.value = App.dpConfig.s2;
+    s2.maxLength = 8;
+
+    const useBtn = document.createElement('button');
+    useBtn.textContent = 'Use Strings';
+    useBtn.addEventListener('click', () => {
+      if (!s1.value.trim() || !s2.value.trim()) {
+        mStatus.textContent = 'Enter both strings';
+        mStatus.style.color = 'var(--accent3)';
+        return;
+      }
+      App.dpConfig.s1 = s1.value.trim().toUpperCase();
+      App.dpConfig.s2 = s2.value.trim().toUpperCase();
+      stopPlay();
+      resetMetrics();
+      initDP();
+    });
+
+    customControls.append(makeField('String A', s1), makeField('String B', s2), useBtn);
+  } else {
+    const items = document.createElement('input');
+    items.className = 'control-input';
+    items.value = App.dpConfig.items.map(item => `${item.w}:${item.v}`).join(', ');
+    items.placeholder = 'weight:value';
+
+    const capacity = document.createElement('input');
+    capacity.className = 'control-input small';
+    capacity.type = 'number';
+    capacity.min = '0';
+    capacity.max = '12';
+    capacity.value = App.dpConfig.capacity;
+
+    const useBtn = document.createElement('button');
+    useBtn.textContent = 'Use Items';
+    useBtn.addEventListener('click', () => {
+      const parsed = parseKnapsackItems(items.value);
+      const cap = Number(capacity.value);
+      if (!parsed || !Number.isInteger(cap) || cap < 0 || cap > 12) {
+        mStatus.textContent = 'Use items like 2:6, 3:12 and capacity 0-12';
+        mStatus.style.color = 'var(--accent3)';
+        return;
+      }
+      App.dpConfig.items = parsed;
+      App.dpConfig.capacity = cap;
+      stopPlay();
+      resetMetrics();
+      initDP();
+    });
+
+    customControls.append(makeField('Items', items), makeField('Capacity', capacity), useBtn);
+  }
 }
 
 // ─── Array generation ─────────────────────────────────────────
@@ -203,6 +429,7 @@ function generateArray(forSearch = false) {
   resetMetrics();
   buildSteps();
   redraw();
+  syncArrayControls();
 }
 
 function buildSteps() {
@@ -214,11 +441,11 @@ function buildSteps() {
   } else if (m === 'graph') {
     const gen = a === 'bfs' ? GraphEngine.bfsGen :
                 a === 'dfs' ? GraphEngine.dfsGen : GraphEngine.dijkstraGen;
-    App.steps = [...gen(GraphEngine.DEFAULT_NODES, GraphEngine.DEFAULT_EDGES, 0)];
+    App.steps = [...gen(GraphEngine.DEFAULT_NODES, GraphEngine.DEFAULT_EDGES, App.graphStart, App.graphTarget)];
   } else if (m === 'dp') {
     const alg = DPEngine.ALGORITHMS[a];
-    if (a === 'lcs') App.steps = [...alg.gen('ABCBDAB', 'BDCAB')];
-    else App.steps = [...alg.gen([{w:2,v:6},{w:2,v:10},{w:3,v:12}], 5)];
+    if (a === 'lcs') App.steps = [...alg.gen(App.dpConfig.s1, App.dpConfig.s2)];
+    else App.steps = [...alg.gen(App.dpConfig.items, App.dpConfig.capacity)];
   }
   App.stepIdx = 0;
 }
@@ -229,7 +456,30 @@ function getDelay() {
   return Math.round(1200 / v);
 }
 
+function updateSpeed() {
+  if (App.playing) {
+    clearInterval(App.timer);
+    App.timer = setInterval(() => {
+      if (App.stepIdx >= App.steps.length) {
+        stopPlay();
+        if (App.module === 'sorting') setStatus('Sorted', 'var(--accent2)');
+        return;
+      }
+      applyStep(App.steps[App.stepIdx++]);
+    }, getDelay());
+  }
+}
+
+function updateSliderBackground() {
+  const min = parseInt(speedSlider.min) || 1;
+  const max = parseInt(speedSlider.max) || 10;
+  const val = parseInt(speedSlider.value);
+  const percentage = ((val - min) / (max - min)) * 100;
+  speedSlider.style.background = `linear-gradient(to right, var(--accent) ${percentage}%, var(--bg3) ${percentage}%)`;
+}
+
 function startPlay() {
+  if (!App.steps.length) buildSteps();
   if (App.stepIdx >= App.steps.length) {
     App.stepIdx = 0;
     resetMetrics();
@@ -239,8 +489,7 @@ function startPlay() {
   App.timer = setInterval(() => {
     if (App.stepIdx >= App.steps.length) {
       stopPlay();
-      mStatus.textContent = 'Done ✓';
-      mStatus.style.color = 'var(--accent2)';
+      if (App.module === 'sorting') setStatus('Sorted', 'var(--accent2)');
       return;
     }
     applyStep(App.steps[App.stepIdx++]);
@@ -255,32 +504,67 @@ function stopPlay() {
 
 function applyStep(step) {
   const m = App.module;
+  addMetricDelta(step.metrics);
+
   if (m === 'sorting') {
-    if (step.swap) App.metrics.swaps++;
-    if (step.cmp && step.cmp.length) { App.metrics.comparisons++; App.metrics.accesses += 2; }
     updateMetrics();
     // draw this exact step's state
     Renderer.drawSortBars(ctx, canvas.width, canvas.height, step);
+    if (Array.isArray(step.done) && step.done.length === step.arr.length) setStatus('Sorted', 'var(--accent2)');
   } else if (m === 'searching') {
-    App.metrics.comparisons++;
-    App.metrics.accesses++;
     updateMetrics();
     Renderer.drawSearchBars(ctx, canvas.width, canvas.height, step);
+    updateSearchStatus(step);
   } else if (m === 'graph') {
     App.graphState = step;
-    App.metrics.comparisons++;
     updateMetrics();
     Renderer.drawGraph(ctx, canvas.width, canvas.height, GraphEngine.DEFAULT_NODES, GraphEngine.DEFAULT_EDGES, App.graphState);
+    updateGraphStatus(step);
   } else if (m === 'dp') {
     App.dpState = step;
-    App.metrics.accesses++;
     updateMetrics();
     // clear canvas behind DOM layer
     Renderer.clear(ctx, canvas.width, canvas.height);
     renderDP(step);
+    if (step.done) setStatus(App.algo === 'lcs' ? `LCS length ${step.result}` : `Max value ${step.result}`, 'var(--accent2)');
+    else if (step.explain) setStatus(step.explain);
   }
   // highlight pseudocode line
   if (step.line !== undefined) highlightLine(step.line);
+}
+
+function addMetricDelta(delta = {}) {
+  App.metrics.comparisons += delta.comparisons || 0;
+  App.metrics.swaps += delta.swaps || 0;
+  App.metrics.accesses += delta.accesses || 0;
+}
+
+function setStatus(text, color = 'var(--accent)') {
+  mStatus.textContent = text;
+  mStatus.style.color = color;
+}
+
+function updateSearchStatus(step) {
+  if (step.found >= 0) {
+    setStatus(`Found ${App.target} at index ${step.found}`, 'var(--accent2)');
+  } else if (step.found === -2 || step.done) {
+    setStatus(`${App.target} not found`, 'var(--accent3)');
+  } else {
+    setStatus(`Searching for ${App.target}`);
+  }
+}
+
+function updateGraphStatus(step) {
+  const labels = GraphEngine.DEFAULT_NODES;
+  if (step.done && step.path && step.path.length) {
+    setStatus(`Path: ${step.path.map(id => labels[id].label).join(' -> ')}`, 'var(--accent2)');
+  } else if (step.done && step.order) {
+    setStatus(`Visited: ${step.order.map(id => labels[id].label).join(' -> ')}`, 'var(--accent2)');
+  } else if (step.done) {
+    setStatus('Done', 'var(--accent2)');
+  } else if (step.order && step.order.length) {
+    setStatus(`Visited: ${step.order.map(id => labels[id].label).join(' -> ')}`);
+  }
 }
 
 // ─── Draw ─────────────────────────────────────────────────────
@@ -293,7 +577,8 @@ function redraw() {
   if (m === 'sorting') {
     Renderer.drawSortBars(ctx, w, h, step.arr ? step : {arr: App.arr, cmp:[], done:[], swap:false});
   } else if (m === 'searching') {
-    Renderer.drawSearchBars(ctx, w, h, step.arr ? step : {arr: App.arr, current:-1, found:-1, searched:[]});
+    const viewArr = App.algo === 'binary' ? [...App.arr].sort((a, b) => a - b) : App.arr;
+    Renderer.drawSearchBars(ctx, w, h, step.arr ? step : {arr: viewArr, target: App.target, current:-1, found:-1, searched:[]});
   } else if (m === 'bst') {
     const layout = App.bst ? App.bst.toLayout(w, h) : [];
     Renderer.drawTree(ctx, w, h, layout);
@@ -314,7 +599,7 @@ function redraw() {
       Renderer.clear(ctx, w, h);
     }
   } else if (m === 'graph') {
-    Renderer.drawGraph(ctx, w, h, GraphEngine.DEFAULT_NODES, GraphEngine.DEFAULT_EDGES, App.graphState || {});
+    Renderer.drawGraph(ctx, w, h, GraphEngine.DEFAULT_NODES, GraphEngine.DEFAULT_EDGES, App.graphState || {start: App.graphStart, target: App.graphTarget});
   } else {
     Renderer.clear(ctx, w, h);
   }
@@ -376,8 +661,7 @@ function highlightLine(lineIdx) {
 function resetMetrics() {
   App.metrics = { comparisons: 0, swaps: 0, accesses: 0 };
   updateMetrics();
-  mStatus.textContent = 'Ready';
-  mStatus.style.color = 'var(--accent)';
+  setStatus('Ready');
 }
 function updateMetrics() {
   mComparisons.textContent = App.metrics.comparisons;
@@ -407,14 +691,18 @@ function renderStack() {
     popBtn.className = 'stack-btn'; popBtn.textContent = 'Pop';
     const peekBtn = document.createElement('button');
     peekBtn.className = 'stack-btn'; peekBtn.textContent = 'Peek';
-    inputArea.append(inp, pushBtn, popBtn, peekBtn);
+    inputArea.append(inp, pushBtn);
+
+    const actionArea = document.createElement('div');
+    actionArea.className = 'stack-action-area';
+    actionArea.append(popBtn, peekBtn);
 
     const container = document.createElement('div');
     container.className = 'stack-container';
 
     const inner = document.createElement('div');
     inner.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:16px;';
-    inner.append(inputArea, container);
+    inner.append(inputArea, actionArea, container);
     wrap.appendChild(inner);
 
     function refreshStack() {
@@ -478,20 +766,23 @@ function renderStack() {
     deqBtn.className = 'stack-btn'; deqBtn.textContent = 'Dequeue';
     const frontBtn = document.createElement('button');
     frontBtn.className = 'stack-btn'; frontBtn.textContent = 'Front';
-    inputArea.append(inp, enqBtn, deqBtn, frontBtn);
+    inputArea.append(inp, enqBtn);
+    const actionArea = document.createElement('div');
+    actionArea.className = 'stack-action-area';
+    actionArea.append(deqBtn, frontBtn);
     const track = document.createElement('div');
     track.className = 'queue-track';
     const labels = document.createElement('div');
-    labels.style.cssText = 'display:flex;gap:20px;font-size:11px;font-family:Space Mono;color:var(--text3);';
+    labels.style.cssText = 'display:flex;gap:20px;font-size:11px;font-family:var(--font-mono);color:var(--text3);';
     labels.innerHTML = '<span style="color:var(--accent2)">← FRONT (dequeue)</span><span style="color:var(--accent4)">REAR (enqueue) →</span>';
-    outer.append(inputArea, track, labels);
+    outer.append(inputArea, actionArea, track, labels);
     wrap.appendChild(outer);
 
     function refreshQueue() {
       track.innerHTML = '';
       if (!App.queueData.length) {
         const empty = document.createElement('span');
-        empty.style.cssText = 'color:var(--text3);font-family:Space Mono;font-size:13px;';
+        empty.style.cssText = 'color:var(--text3);font-family:var(--font-mono);font-size:12px;';
         empty.textContent = '[ empty ]';
         track.appendChild(empty);
         return;
@@ -559,7 +850,7 @@ function renderLinkedList() {
     track.innerHTML = '';
     if (!App.llData.length) {
       const empty = document.createElement('span');
-      empty.style.cssText = 'color:var(--text3);font-family:Space Mono;font-size:13px;';
+      empty.style.cssText = 'color:var(--text3);font-family:var(--font-mono);font-size:12px;';
       empty.textContent = '[ empty list ]';
       track.appendChild(empty);
       return;
@@ -618,12 +909,10 @@ function renderLinkedList() {
 
 // ─── BST controls ─────────────────────────────────────────────
 function renderBSTControls() {
-  // Note: clearDOM() already called by initModule before redraw() and this call
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:absolute;top:10px;right:14px;display:flex;flex-direction:column;gap:6px;z-index:5;pointer-events:all;';
+  wrap.className = 'viz-controls-overlay';
   const inp = document.createElement('input');
   inp.type='number'; inp.placeholder='Value';
-  inp.style.cssText='padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:Space Mono;font-size:13px;outline:none;width:110px;';
   const insBtn = document.createElement('button');
   insBtn.className='stack-btn'; insBtn.textContent='Insert';
   const delBtn = document.createElement('button');
@@ -632,10 +921,14 @@ function renderBSTControls() {
   clearBtn.className='stack-btn'; clearBtn.textContent='Clear';
   wrap.append(inp, insBtn, delBtn, clearBtn);
   insBtn.addEventListener('click', () => {
-    const v=+inp.value; if(!v) return; App.bst.insert(v); inp.value=''; redraw(); mStatus.textContent=`Inserted ${v}`; App.metrics.accesses++; updateMetrics();
+    const raw = inp.value.trim(); const v = Number(raw);
+    if (raw === '' || !Number.isFinite(v)) return;
+    App.bst.insert(v); inp.value=''; redraw(); mStatus.textContent=`Inserted ${v}`; App.metrics.accesses++; updateMetrics();
   });
   delBtn.addEventListener('click', () => {
-    const v=+inp.value; if(!v) return; App.bst.remove(v); inp.value=''; redraw(); mStatus.textContent=`Deleted ${v}`; App.metrics.accesses++; updateMetrics();
+    const raw = inp.value.trim(); const v = Number(raw);
+    if (raw === '' || !Number.isFinite(v)) return;
+    App.bst.remove(v); inp.value=''; redraw(); mStatus.textContent=`Deleted ${v}`; App.metrics.accesses++; updateMetrics();
   });
   clearBtn.addEventListener('click', () => { App.bst=new BSTEngine.BST(); redraw(); mStatus.textContent='Cleared'; });
   domLayer.appendChild(wrap);
@@ -643,17 +936,17 @@ function renderBSTControls() {
 
 // ─── Heap controls ────────────────────────────────────────────
 function renderHeapControls() {
-  // Note: clearDOM() already called by initModule
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:absolute;top:10px;right:14px;display:flex;flex-direction:column;gap:6px;z-index:5;pointer-events:all;';
+  wrap.className = 'viz-controls-overlay';
   const inp = document.createElement('input');
   inp.type='number'; inp.placeholder='Value';
-  inp.style.cssText='padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:Space Mono;font-size:13px;outline:none;width:110px;';
   const insBtn = document.createElement('button'); insBtn.className='stack-btn'; insBtn.textContent='Insert';
   const extBtn = document.createElement('button'); extBtn.className='stack-btn'; extBtn.textContent='Extract Top';
   wrap.append(inp, insBtn, extBtn);
   insBtn.addEventListener('click', () => {
-    const v=+inp.value; if(!v) return; App.heap.insert(v); inp.value=''; redraw(); mStatus.textContent=`Inserted ${v}`; App.metrics.accesses++; updateMetrics();
+    const raw = inp.value.trim(); const v = Number(raw);
+    if (raw === '' || !Number.isFinite(v)) return;
+    App.heap.insert(v); inp.value=''; redraw(); mStatus.textContent=`Inserted ${v}`; App.metrics.accesses++; updateMetrics();
   });
   extBtn.addEventListener('click', () => {
     const v=App.heap.extract(); redraw(); mStatus.textContent=v!=null?`Extracted ${v}`:'Empty'; App.metrics.accesses++; updateMetrics();
@@ -662,69 +955,13 @@ function renderHeapControls() {
 }
 
 // ─── Graph controls ───────────────────────────────────────────
-function renderGraphControls() {
-  // Graph uses its own Run button; hide the top bar play controls
-  hidePlayControls(true);
-
-  const wrap = document.createElement('div');
-  wrap.style.cssText='position:absolute;top:10px;right:14px;z-index:5;pointer-events:all;display:flex;flex-direction:column;gap:6px;';
-  wrap.id = 'graph-ctrl';
-  const runBtn = document.createElement('button');
-  runBtn.className='stack-btn'; runBtn.textContent='▶ Run Algorithm';
-  const stepBtn = document.createElement('button');
-  stepBtn.className='stack-btn'; stepBtn.textContent='Step →';
-  const resetBtn = document.createElement('button');
-  resetBtn.className='stack-btn'; resetBtn.textContent='↺ Reset';
-
-  wrap.append(runBtn, stepBtn, resetBtn);
-
-  runBtn.addEventListener('click', () => {
-    buildSteps();
-    App.stepIdx = 0;
-    resetMetrics();
-    // Manual play loop for graph (without showing top controls)
-    stopPlay();
-    App.playing = true;
-    App.timer = setInterval(() => {
-      if (App.stepIdx >= App.steps.length) {
-        stopPlay();
-        mStatus.textContent = 'Done ✓';
-        mStatus.style.color = 'var(--accent2)';
-        return;
-      }
-      const step = App.steps[App.stepIdx++];
-      App.graphState = step;
-      App.metrics.comparisons++;
-      updateMetrics();
-      Renderer.drawGraph(ctx, canvas.width, canvas.height, GraphEngine.DEFAULT_NODES, GraphEngine.DEFAULT_EDGES, App.graphState);
-      if (step.line !== undefined) highlightLine(step.line);
-      if (step.order) mStatus.textContent = `Visited: ${step.order.map(id => GraphEngine.DEFAULT_NODES[id].label).join(' → ')}`;
-    }, getDelay());
-  });
-
-  stepBtn.addEventListener('click', () => {
-    if (!App.steps.length) { buildSteps(); App.stepIdx = 0; resetMetrics(); }
-    if (App.stepIdx < App.steps.length) {
-      const step = App.steps[App.stepIdx++];
-      App.graphState = step;
-      App.metrics.comparisons++;
-      updateMetrics();
-      Renderer.drawGraph(ctx, canvas.width, canvas.height, GraphEngine.DEFAULT_NODES, GraphEngine.DEFAULT_EDGES, App.graphState);
-      if (step.line !== undefined) highlightLine(step.line);
-      if (step.order) mStatus.textContent = `Visited: ${step.order.map(id => GraphEngine.DEFAULT_NODES[id].label).join(' → ')}`;
-    }
-  });
-
-  resetBtn.addEventListener('click', () => {
-    stopPlay();
-    App.graphState = null;
-    App.steps = [];
-    App.stepIdx = 0;
-    resetMetrics();
-    Renderer.drawGraph(ctx, canvas.width, canvas.height, GraphEngine.DEFAULT_NODES, GraphEngine.DEFAULT_EDGES, {});
-  });
-
-  domLayer.appendChild(wrap);
+function resetGraphView() {
+  stopPlay();
+  App.graphState = null;
+  App.steps = [];
+  App.stepIdx = 0;
+  resetMetrics();
+  redraw();
 }
 
 // ─── DP ───────────────────────────────────────────────────────
@@ -748,11 +985,12 @@ function renderDP(step) {
 
   if (!step) {
     const hint = document.createElement('div');
-    hint.style.cssText = 'color:var(--text3);font-family:Space Mono;font-size:13px;text-align:center;line-height:2;';
+    hint.className = 'dp-explain';
     if (App.algo === 'lcs') {
-      hint.innerHTML = 'LCS(<span style="color:var(--accent)">ABCBDAB</span>, <span style="color:var(--accent2)">BDCAB</span>)<br>Press ▶ Play to visualize';
+      hint.innerHTML = `LCS(${App.dpConfig.s1}, ${App.dpConfig.s2})`;
     } else {
-      hint.innerHTML = 'Knapsack — Items: [{w:2,v:6},{w:2,v:10},{w:3,v:12}], Capacity=5<br>Press ▶ Play to visualize';
+      const itemText = App.dpConfig.items.map(item => `w${item.w}:v${item.v}`).join(', ');
+      hint.innerHTML = `Knapsack items: ${itemText} | Capacity: ${App.dpConfig.capacity}`;
     }
     outer.appendChild(hint);
     wrap.appendChild(outer);
@@ -765,11 +1003,11 @@ function renderDP(step) {
   // Build header row labels
   let colHeaders = [], rowHeaders = [];
   if (App.algo === 'lcs') {
-    colHeaders = ['', ...(['ε', ...'BDCAB'.split('')])];
-    rowHeaders = ['ε', ...'ABCBDAB'.split('')];
+    colHeaders = ['', ...(['-', ...step.s2.split('')])];
+    rowHeaders = ['-', ...step.s1.split('')];
   } else {
-    colHeaders = Array.from({length: cols}, (_, j) => j === 0 ? 'w→' : String(j - 1));
-    rowHeaders = ['∅', 'i1', 'i2', 'i3'];
+    colHeaders = Array.from({length: cols}, (_, j) => j === 0 ? 'cap' : String(j - 1));
+    rowHeaders = ['-', ...step.items.map((item, i) => `i${i + 1}`)];
   }
 
   // Table with headers
@@ -781,8 +1019,7 @@ function renderDP(step) {
   for (let i = 0; i < rows; i++) {
     // row header
     const rh = document.createElement('div');
-    rh.className = 'dp-cell header';
-    rh.style.cssText = 'font-size:10px;color:var(--accent4);background:var(--bg2);border-color:transparent;';
+    rh.className = 'dp-cell header dp-row-header';
     rh.textContent = rowHeaders[i] !== undefined ? rowHeaders[i] : String(i);
     table.appendChild(rh);
 
@@ -810,19 +1047,21 @@ function renderDP(step) {
   colHeaderRow.style.marginBottom = '2px';
   colHeaders.forEach((h, j) => {
     const cell = document.createElement('div');
-    cell.className = 'dp-cell header';
-    cell.style.cssText = 'font-size:10px;color:var(--accent);background:var(--bg2);border-color:transparent;height:24px;';
+    cell.className = 'dp-cell header dp-col-header';
     cell.textContent = h;
     colHeaderRow.appendChild(cell);
   });
 
   if (step.done) {
     const res = document.createElement('div');
-    res.style.cssText = 'font-family:Space Mono;font-size:14px;color:var(--accent2);margin-top:12px;text-align:center;';
-    res.textContent = App.algo === 'lcs' ? `✓ LCS Length: ${step.result}` : `✓ Max Value: ${step.result}`;
+    res.className = 'dp-result';
+    res.textContent = App.algo === 'lcs' ? `LCS length: ${step.result}` : `Max value: ${step.result}`;
     outer.append(colHeaderRow, table, res);
   } else {
-    outer.append(colHeaderRow, table);
+    const explain = document.createElement('div');
+    explain.className = 'dp-explain';
+    explain.textContent = step.explain || '';
+    outer.append(colHeaderRow, table, explain);
   }
   wrap.appendChild(outer);
 }
@@ -834,8 +1073,10 @@ document.getElementById('btn-play').addEventListener('click', () => {
 document.getElementById('btn-step').addEventListener('click', () => {
   if (!App.steps.length) buildSteps();
   if (App.stepIdx < App.steps.length) {
-    applyStep(App.steps[App.stepIdx++]);
-    mStatus.textContent = `Step ${App.stepIdx}/${App.steps.length}`;
+    const step = App.steps[App.stepIdx++];
+    applyStep(step);
+    const sortedDone = Array.isArray(step.done) && step.arr && step.done.length === step.arr.length;
+    if (App.module === 'sorting' && !sortedDone) setStatus(`Step ${App.stepIdx}/${App.steps.length}`);
   }
 });
 document.getElementById('btn-reset').addEventListener('click', () => {
@@ -847,9 +1088,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
     clearDOM();
     initDP();
   } else if (App.module === 'graph') {
-    App.graphState = null;
-    App.steps = [];
-    Renderer.drawGraph(ctx, canvas.width, canvas.height, GraphEngine.DEFAULT_NODES, GraphEngine.DEFAULT_EDGES, {});
+    resetGraphView();
   } else {
     redraw();
   }
@@ -858,14 +1097,64 @@ document.getElementById('btn-generate').addEventListener('click', () => {
   stopPlay();
   if (App.module === 'sorting') generateArray();
   else if (App.module === 'searching') generateArray(true);
-  else if (App.module === 'graph') { App.graphState=null; redraw(); App.steps=[]; }
 });
 
-// Nav buttons
+// ─── Sidebar Collapsible & Mobile Drawer Logic ───────────────
+const sidebar = document.getElementById('sidebar');
+const main = document.getElementById('main');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+const backdrop = document.getElementById('sidebar-backdrop');
+
+function toggleSidebar() {
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    sidebar.classList.toggle('mobile-open');
+    backdrop.classList.toggle('show');
+  } else {
+    sidebar.classList.toggle('collapsed');
+    main.classList.toggle('collapsed-layout');
+    resizeCanvas();
+  }
+}
+
+if (sidebarToggle) {
+  sidebarToggle.addEventListener('click', toggleSidebar);
+}
+
+if (backdrop) {
+  backdrop.addEventListener('click', () => {
+    sidebar.classList.remove('mobile-open');
+    backdrop.classList.remove('show');
+  });
+}
+
+// Nav buttons click: switch module and close drawer on mobile
 document.querySelectorAll('.nav-btn').forEach(btn => {
-  btn.addEventListener('click', () => switchModule(btn.dataset.module));
+  btn.addEventListener('click', () => {
+    switchModule(btn.dataset.module);
+    if (window.innerWidth <= 768) {
+      sidebar.classList.remove('mobile-open');
+      backdrop.classList.remove('show');
+    }
+  });
 });
+
+// Trigger canvas resizing at the end of sidebar transition for pixel-perfect scale
+sidebar.addEventListener('transitionend', (e) => {
+  if (e.propertyName === 'width' || e.propertyName === 'transform') {
+    resizeCanvas();
+  }
+});
+
+// Speed slider change events
+if (speedSlider) {
+  speedSlider.addEventListener('input', () => {
+    updateSliderBackground();
+    updateSpeed();
+  });
+}
 
 // ─── Boot ─────────────────────────────────────────────────────
 resizeCanvas();
+updateSliderBackground();
 switchModule('sorting');
