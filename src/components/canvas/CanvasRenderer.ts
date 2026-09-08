@@ -198,74 +198,168 @@ export function drawSortBars(
   }
 }
 
-export function drawSearchBars(ctx: CanvasRenderingContext2D, w: number, h: number, state: SearchStep) {
+export function getSearchBarAt(x: number, y: number, w: number, h: number, n: number): number | null {
+  if (n === 0) return null;
+  const barW = Math.floor((w - 40) / n) - 2;
+  const padX = 20;
+  if (x < padX || x > padX + n * (barW + 2)) return null;
+  const idx = Math.floor((x - padX) / (barW + 2));
+  if (idx >= 0 && idx < n) {
+    return idx;
+  }
+  return null;
+}
+
+export function drawSearchBars(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  state: SearchStep,
+  options?: {
+    hoverIdx?: number | null;
+  }
+) {
   clear(ctx, w, h);
-  const { arr, target, current, found, searched = [], lo, hi, mid } = state;
+  const {
+    arr,
+    target,
+    current,
+    found,
+    searched = [],
+    discarded = [],
+    range,
+    pointers = {},
+    lo,
+    hi,
+    mid,
+  } = state;
+
+  const hoverIdx = options?.hoverIdx ?? null;
   const n = arr.length;
   if (n === 0) return;
+
   const maxVal = Math.max(...arr, 1);
   const barW = Math.floor((w - 40) / n) - 2;
   const padX = 20;
   const maxH = h - 90;
 
-  for (let i = 0; i < n; i++) {
-    const bh = Math.round((arr[i] / maxVal) * maxH);
-    const x = padX + i * (barW + 2);
-    const y = h - 50 - bh;
+  // 1. Draw Active Search Interval Window Backdrop
+  const activeRange = range || (lo !== undefined && hi !== undefined && lo >= 0 && hi >= lo ? [lo, hi] : null);
+  if (activeRange && activeRange.length === 2) {
+    const [rLo, rHi] = activeRange;
+    if (rLo >= 0 && rHi < n && rHi >= rLo) {
+      const rx = padX + rLo * (barW + 2) - 3;
+      const rw = (rHi - rLo + 1) * (barW + 2);
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.08)';
+      ctx.fillRect(rx, 15, rw, h - 50);
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(rx, 15, rw, h - 50);
+      ctx.setLineDash([]);
 
-    let color = C.base;
-    if (found === i) color = C.accent2;
-    else if (found === -2) color = C.accent3;
-    else if (searched.includes(i)) color = '#2a3050';
-    else if (i === current || i === mid) color = C.accent;
-    else if (i === lo || i === hi) color = C.accent4;
-
-    if (i === current || i === mid || found === i) {
-      ctx.shadowColor = color; 
-      ctx.shadowBlur = 14;
+      ctx.fillStyle = '#60a5fa';
+      ctx.font = "bold 10px 'Space Mono', monospace";
+      ctx.textAlign = 'left';
+      ctx.fillText(`Search Window [${rLo}..${rHi}]`, rx + 6, 28);
     }
-    ctx.fillStyle = color;
+  }
+
+  // 2. Render Bars
+  for (let i = 0; i < n; i++) {
+    const val = arr[i];
+    const bh = Math.max(6, Math.round((val / maxVal) * maxH));
+    const x = padX + i * (barW + 2);
+    const y = h - 45 - bh;
+
+    const isFound = found === i;
+    const isCurrent = i === current || i === mid;
+    const isLoOrHi = i === lo || i === hi;
+    const isDiscarded = discarded.includes(i);
+    const isSearched = searched.includes(i);
+    const isHover = hoverIdx === i;
+
+    let color = `hsl(${215 + Math.round((val / maxVal) * 35)}, 35%, 24%)`;
+
+    if (isFound) {
+      color = C.accent2; // emerald green
+    } else if (isCurrent) {
+      color = C.accent; // electric blue
+    } else if (isLoOrHi) {
+      color = C.accent4; // amber
+    } else if (isDiscarded) {
+      color = '#111827'; // dimmed ruled out
+    } else if (isSearched) {
+      color = '#1e293b'; // already scanned
+    }
+
+    if (isHover) {
+      color = '#38bdf8'; // sky blue
+    }
+
+    // Glow on active probe or found
+    if (isCurrent || isFound || isHover) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = isFound ? 20 : 14;
+    }
+
+    const grad = ctx.createLinearGradient(x, y, x, y + bh);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, isFound ? '#065f46' : isCurrent ? '#1e3a8a' : isDiscarded ? '#090d16' : '#0f172a');
+
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.roundRect(x, y, barW, bh, [3, 3, 0, 0]);
+    ctx.roundRect(x, y, Math.max(1, barW), bh, [3, 3, 0, 0]);
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    if (barW >= 14) {
-      ctx.fillStyle = C.text2;
-      ctx.font = `bold ${Math.max(9, Math.min(barW - 2, 12))}px 'Space Mono'`;
+    // Stroke border
+    ctx.strokeStyle = isHover ? '#fff' : isCurrent || isFound ? color : 'rgba(255, 255, 255, 0.06)';
+    ctx.lineWidth = isHover || isCurrent || isFound ? 1.5 : 1;
+    ctx.stroke();
+
+    // 3. Pointer Label Badges above bars
+    const activePointers: string[] = [];
+    if (isFound) activePointers.push('FOUND');
+    if (i === mid && !activePointers.includes('MID')) activePointers.push('MID');
+    if (i === lo && !activePointers.includes('LO')) activePointers.push('LO');
+    if (i === hi && !activePointers.includes('HI')) activePointers.push('HI');
+
+    for (const [pName, pIdx] of Object.entries(pointers)) {
+      const upper = pName.toUpperCase();
+      if (pIdx === i && !activePointers.includes(upper)) {
+        activePointers.push(upper);
+      }
+    }
+
+    if (activePointers.length > 0 && barW >= 12) {
+      const badgeText = activePointers.join(',');
+      const badgeY = Math.max(16, y - 8);
+      ctx.fillStyle = isFound ? C.accent2 : isCurrent ? C.accent : C.accent4;
+      ctx.font = `bold ${Math.max(8, Math.min(barW, 10))}px 'Space Mono', monospace`;
       ctx.textAlign = 'center';
-      ctx.fillText(arr[i].toString(), x + barW / 2, h - 32);
+      ctx.fillText(badgeText, x + barW / 2, badgeY);
+
+      ctx.beginPath();
+      ctx.moveTo(x + barW / 2 - 3, badgeY + 2);
+      ctx.lineTo(x + barW / 2 + 3, badgeY + 2);
+      ctx.lineTo(x + barW / 2, badgeY + 5);
+      ctx.fill();
     }
-  }
 
-  if (target !== undefined) {
-    ctx.fillStyle = C.text2;
-    ctx.font = '12px Space Mono';
-    ctx.textAlign = 'left';
-    ctx.fillText(`Target: ${target}`, 20, 24);
-  }
+    // 4. Value label at bottom of canvas
+    if (barW >= 14) {
+      ctx.fillStyle = isHover ? '#38bdf8' : isFound ? '#a7f3d0' : isCurrent ? '#ffffff' : isDiscarded ? '#475569' : C.text2;
+      ctx.font = `bold ${Math.max(9, Math.min(barW - 2, 12))}px 'Space Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(val.toString(), x + barW / 2, h - 24);
 
-  if (lo !== undefined && lo >= 0) {
-    const lx = padX + lo * (barW + 2) + barW / 2;
-    const hx = padX + (hi ?? 0) * (barW + 2) + barW / 2;
-    const mx = padX + (mid ?? 0) * (barW + 2) + barW / 2;
-    ctx.font = 'bold 10px Space Mono';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = C.accent4;
-    ctx.fillText('lo', lx, h - 14);
-    if (hi !== undefined) ctx.fillText('hi', hx, h - 14);
-    if (mid !== undefined) {
-      ctx.fillStyle = C.accent;
-      ctx.fillText('mid', mx, h - 14);
+      if (barW >= 24) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = `9px 'Space Mono', monospace`;
+        ctx.fillText(`[${i}]`, x + barW / 2, h - 10);
+      }
     }
-  }
-
-  if (found >= 0) {
-    const fx = padX + found * (barW + 2) + barW / 2;
-    ctx.fillStyle = C.accent2;
-    ctx.font = 'bold 11px Space Mono';
-    ctx.textAlign = 'center';
-    ctx.fillText('FOUND', fx, h - 14);
   }
 }
 

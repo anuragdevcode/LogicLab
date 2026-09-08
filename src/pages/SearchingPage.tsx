@@ -19,7 +19,7 @@ export default function SearchingPage() {
   useEffect(() => {
     setModule('searching');
     setAlgo('linear');
-    setModuleTitle('Searching');
+    setModuleTitle('Searching Algorithms');
     setAlgoList(
       Object.entries(SEARCHING_ALGORITHMS).map(([id, meta]) => ({ id, name: meta.name }))
     );

@@ -47,6 +47,11 @@ export interface SearchStep {
   mid?: number;
   found: number;
   searched?: number[];
+  discarded?: number[];
+  range?: [number, number];
+  pointers?: Record<string, number>;
+  reason?: string;
+  action?: 'scan' | 'probe' | 'narrow' | 'jump' | 'bound' | 'found' | 'not_found' | 'done' | 'idle';
   done?: boolean;
   line: number;
   metrics?: MetricsDelta;

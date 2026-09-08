@@ -52,7 +52,10 @@ export interface AppState {
   arr: number[];
   target: number;
   generateArray: (forSearch?: boolean, size?: number) => void;
-  setArrayPreset: (preset: 'random' | 'nearlySorted' | 'reversed' | 'fewUnique', count?: number) => void;
+  setArrayPreset: (
+    preset: 'random' | 'nearlySorted' | 'reversed' | 'fewUnique' | 'sortedUniform' | 'sortedRandom',
+    count?: number
+  ) => void;
   setArr: (arr: number[]) => void;
   setTarget: (target: number) => void;
 
@@ -212,7 +215,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().resetMetrics();
     get().buildSteps();
   },
-  setArrayPreset: (preset: 'random' | 'nearlySorted' | 'reversed' | 'fewUnique', count = 20) => {
+  setArrayPreset: (
+    preset: 'random' | 'nearlySorted' | 'reversed' | 'fewUnique' | 'sortedUniform' | 'sortedRandom',
+    count = 20
+  ) => {
     const n = Math.max(5, Math.min(60, count || 20));
     let newArr: number[] = [];
     if (preset === 'random') {
@@ -230,8 +236,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     } else if (preset === 'fewUnique') {
       const pool = [18, 38, 58, 78, 92];
       newArr = Array.from({ length: n }, () => pool[Math.floor(Math.random() * pool.length)]);
+    } else if (preset === 'sortedUniform') {
+      const step = Math.max(2, Math.floor(80 / n));
+      const start = 10;
+      newArr = Array.from({ length: n }, (_, i) => start + i * step);
+    } else if (preset === 'sortedRandom') {
+      newArr = Array.from({ length: n }, () => Math.floor(Math.random() * 90) + 10).sort((a, b) => a - b);
     }
-    set({ arr: newArr, steps: [], stepIdx: 0 });
+
+    // If in searching module and current target is not in array or array changed, ensure target is in array or kept
+    let currentTarget = get().target;
+    if (get().module === 'searching' && !newArr.includes(currentTarget) && newArr.length > 0) {
+      currentTarget = newArr[Math.floor(newArr.length / 2)];
+    }
+
+    set({ arr: newArr, target: currentTarget, steps: [], stepIdx: 0 });
     get().resetMetrics();
     get().buildSteps();
   },
@@ -240,7 +259,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().resetMetrics();
     get().buildSteps();
   },
-  setTarget: (target) => set({ target }),
+  setTarget: (target) => {
+    set({ target, steps: [], stepIdx: 0 });
+    get().resetMetrics();
+    if (get().module === 'searching') {
+      get().buildSteps();
+    }
+  },
 
   // Sound
   soundEnabled: false,
