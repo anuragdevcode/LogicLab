@@ -8,6 +8,8 @@ import {
   AlgoListItem,
   AlgorithmMeta,
   StackNarrative,
+  LinkedListMode,
+  LinkedListNarrative,
 } from '@/types';
 import { BST } from '@/engines/bst';
 import { Heap } from '@/engines/heap';
@@ -28,6 +30,8 @@ import {
   STACK_CAPACITY,
   STACK_DATA_STRUCTURES,
   HEAP_INFO,
+  LINKED_LIST_CAPACITY,
+  LINKED_LIST_INFOS,
 } from '@/engines';
 import { playFrequencyTone } from '@/components/canvas/CanvasRenderer';
 
@@ -98,12 +102,22 @@ export interface AppState {
   queueCount: number;
   stackHighlightIdx: number | null;
   stackNarrative: StackNarrative | null;
+  // Linked List
+  llMode: LinkedListMode;
   llData: number[];
+  llActivePointer: number | null;
+  llPrevPointer: number | null;
+  llNarrative: LinkedListNarrative | null;
+  llTraversals: number;
 
   // Data structure actions
   stackAction: (action: string, value?: number | string) => void;
   queueAction: (action: string, value?: number | string) => void;
-  llAction: (action: string, value?: string) => void;
+  setLinkedListMode: (mode: LinkedListMode) => void;
+  llAction: (action: string, value?: number | string, index?: number) => void;
+  llSearch: (target: number) => Promise<boolean>;
+  llReverse: () => Promise<void>;
+  resetLinkedListData: () => void;
   setBst: (bst: BST | null) => void;
   setHeap: (heap: Heap | null) => void;
   setHeapType: (type: 'min' | 'max') => void;
@@ -153,7 +167,6 @@ export interface AppState {
   initGraph: () => void;
   initDP: () => void;
   resetStackQueueData: () => void;
-  resetLinkedListData: () => void;
 }
 
 let playbackTimer: ReturnType<typeof setInterval> | null = null;
@@ -193,6 +206,23 @@ export const useAppStore = create<AppState>((set, get) => ({
         get().loadInfo(STACK_INFO);
       }
       get().resetStackQueueData();
+    } else if (currentMod === 'linkedlist') {
+      const mode = (algo === 'doubly' || algo === 'circular') ? algo : 'singly';
+      set({
+        llMode: mode,
+        llActivePointer: null,
+        llPrevPointer: null,
+        status: `Switched to ${LINKED_LIST_INFOS[mode]?.name || 'Linked List'}`,
+        statusColor: '',
+        llNarrative: {
+          action: 'mode_switch',
+          badge: 'PARADIGM',
+          reason: LINKED_LIST_INFOS[mode]?.description || '',
+        },
+      });
+      if (LINKED_LIST_INFOS[mode]) {
+        get().loadInfo(LINKED_LIST_INFOS[mode]);
+      }
     } else if (currentMod === 'heap' && HEAP_INFO[algo]) {
       get().loadInfo(HEAP_INFO[algo]);
     }
@@ -326,7 +356,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     badge: 'READY',
     reason: 'Initialized memory slots. Ready for operations.',
   },
-  llData: [],
+  llMode: 'singly',
+  llData: [12, 35, 64, 88],
+  llActivePointer: null,
+  llPrevPointer: null,
+  llNarrative: {
+    action: 'ready',
+    badge: 'READY',
+    reason: 'Initialized Singly Linked List with 4 sample nodes. Ready for operations.',
+  },
+  llTraversals: 0,
 
   // Data structure actions
   stackAction: (action, value) => {
@@ -780,22 +819,407 @@ export const useAppStore = create<AppState>((set, get) => ({
       }));
     }
   },
-  llAction: (action, value) => {
-    set((state) => {
-      const data = [...state.llData];
-      const numVal = value !== undefined ? Number(value) : NaN;
-      if (action === 'insert_head' && !isNaN(numVal)) {
-        data.unshift(numVal);
-      } else if (action === 'insert_tail' && !isNaN(numVal)) {
-        data.push(numVal);
-      } else if (action === 'delete' && !isNaN(numVal)) {
-        const idx = data.indexOf(numVal);
-        if (idx !== -1) data.splice(idx, 1);
-      } else if (action === 'clear') {
-        return { llData: [] };
-      }
-      return { llData: data };
+  setLinkedListMode: (mode: LinkedListMode) => {
+    set({
+      llMode: mode,
+      llActivePointer: null,
+      llPrevPointer: null,
+      status: `Switched to ${LINKED_LIST_INFOS[mode].name}`,
+      statusColor: '',
+      llNarrative: {
+        action: 'mode_switch',
+        badge: 'PARADIGM',
+        reason: LINKED_LIST_INFOS[mode].description || '',
+      },
     });
+    get().loadInfo(LINKED_LIST_INFOS[mode]);
+  },
+  llAction: (action, value, index) => {
+    const state = get();
+    const mode = state.llMode;
+    const num = value !== undefined ? Number(value) : NaN;
+    const idx = index !== undefined ? Number(index) : NaN;
+
+    if (action === 'insert_head') {
+      if (isNaN(num)) {
+        set({ status: 'Enter a valid number to insert', statusColor: '#f43f5e' });
+        return;
+      }
+      if (state.llData.length >= LINKED_LIST_CAPACITY) {
+        if (state.soundEnabled) playFrequencyTone(10, 100, 160);
+        set({
+          status: `Capacity Limit Reached (${LINKED_LIST_CAPACITY}/${LINKED_LIST_CAPACITY})!`,
+          statusColor: '#f43f5e',
+          llNarrative: {
+            action: 'overflow',
+            badge: 'OVERFLOW',
+            reason: `Visualizer capacity capped at ${LINKED_LIST_CAPACITY} nodes for clean horizontal rendering. Delete a node or clear list to add more.`,
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      const nextData = [num, ...state.llData];
+      if (state.soundEnabled) playFrequencyTone(num, 100, 80);
+      set({
+        llData: nextData,
+        llActivePointer: 0,
+        llPrevPointer: null,
+        metrics: { ...state.metrics, accesses: state.metrics.accesses + 1 },
+        status: `Inserted ${num} at Head`,
+        statusColor: '#10b981',
+        llNarrative: {
+          action: 'insert_head',
+          badge: 'INSERT HEAD',
+          reason: `Created new node(${num}). Set node.next = Head (${state.llData[0] ?? 'null'}); Head now points to node(${num}) in O(1) time.`,
+        },
+      });
+      setTimeout(() => {
+        if (get().llActivePointer === 0) set({ llActivePointer: null });
+      }, 900);
+    } else if (action === 'insert_tail') {
+      if (isNaN(num)) {
+        set({ status: 'Enter a valid number to insert', statusColor: '#f43f5e' });
+        return;
+      }
+      if (state.llData.length >= LINKED_LIST_CAPACITY) {
+        if (state.soundEnabled) playFrequencyTone(10, 100, 160);
+        set({
+          status: `Capacity Limit Reached (${LINKED_LIST_CAPACITY}/${LINKED_LIST_CAPACITY})!`,
+          statusColor: '#f43f5e',
+          llNarrative: {
+            action: 'overflow',
+            badge: 'OVERFLOW',
+            reason: `Visualizer capacity capped at ${LINKED_LIST_CAPACITY} nodes for clean horizontal rendering. Delete a node or clear list to add more.`,
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      const nextData = [...state.llData, num];
+      const newIdx = nextData.length - 1;
+      if (state.soundEnabled) playFrequencyTone(num, 100, 80);
+      set({
+        llData: nextData,
+        llActivePointer: newIdx,
+        llPrevPointer: newIdx > 0 ? newIdx - 1 : null,
+        metrics: { ...state.metrics, accesses: state.metrics.accesses + 1 },
+        status: `Inserted ${num} at Tail`,
+        statusColor: '#10b981',
+        llNarrative: {
+          action: 'insert_tail',
+          badge: 'INSERT TAIL',
+          reason: mode === 'doubly'
+            ? `Attached node(${num}) to Tail in O(1) time using tail.next = node and node.prev = tail.`
+            : mode === 'circular'
+            ? `Appended node(${num}) at Tail and closed the ring: node.next points back to Head (${nextData[0]}).`
+            : `Traversed list to tail node. Spliced tail.next = node(${num}) and node.next = null in O(n) time.`,
+        },
+      });
+      setTimeout(() => {
+        if (get().llActivePointer === newIdx) set({ llActivePointer: null, llPrevPointer: null });
+      }, 900);
+    } else if (action === 'insert_at') {
+      if (isNaN(num)) {
+        set({ status: 'Enter a valid number to insert', statusColor: '#f43f5e' });
+        return;
+      }
+      if (state.llData.length >= LINKED_LIST_CAPACITY) {
+        if (state.soundEnabled) playFrequencyTone(10, 100, 160);
+        set({
+          status: `Capacity Limit Reached (${LINKED_LIST_CAPACITY}/${LINKED_LIST_CAPACITY})!`,
+          statusColor: '#f43f5e',
+          llNarrative: {
+            action: 'overflow',
+            badge: 'OVERFLOW',
+            reason: `Visualizer capacity capped at ${LINKED_LIST_CAPACITY} nodes. Cannot insert at index.`,
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      const insertIdx = isNaN(idx) ? 0 : Math.max(0, Math.min(idx, state.llData.length));
+      const nextData = [...state.llData];
+      nextData.splice(insertIdx, 0, num);
+      if (state.soundEnabled) playFrequencyTone(num, 100, 80);
+      set({
+        llData: nextData,
+        llActivePointer: insertIdx,
+        llPrevPointer: insertIdx > 0 ? insertIdx - 1 : null,
+        metrics: { ...state.metrics, accesses: state.metrics.accesses + insertIdx + 1 },
+        status: `Inserted ${num} at index [${insertIdx}]`,
+        statusColor: '#10b981',
+        llNarrative: {
+          action: 'insert_at',
+          badge: 'INSERT AT',
+          reason: `Traversed ${insertIdx} step(s) to position [${insertIdx}]. Re-pointed predecessor next to node(${num}) and node.next to successor.`,
+        },
+      });
+      setTimeout(() => {
+        if (get().llActivePointer === insertIdx) set({ llActivePointer: null, llPrevPointer: null });
+      }, 900);
+    } else if (action === 'delete') {
+      if (state.llData.length === 0) {
+        if (state.soundEnabled) playFrequencyTone(10, 100, 160);
+        set({
+          status: 'Underflow: List is empty!',
+          statusColor: '#f43f5e',
+          llNarrative: {
+            action: 'underflow',
+            badge: 'EMPTY',
+            reason: 'Cannot delete from an empty list (Head == null).',
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      const targetVal = num;
+      const targetIdx = state.llData.indexOf(targetVal);
+      if (targetIdx === -1) {
+        if (state.soundEnabled) playFrequencyTone(10, 100, 160);
+        set({
+          status: `Value ${targetVal} not found in list`,
+          statusColor: '#f43f5e',
+          llNarrative: {
+            action: 'delete_fail',
+            badge: 'NOT FOUND',
+            reason: `Traversed complete list (${state.llData.length} nodes). Node with value ${targetVal} does not exist.`,
+            isError: true,
+          },
+        });
+        return;
+      }
+
+      const nextData = [...state.llData];
+      nextData.splice(targetIdx, 1);
+      if (state.soundEnabled) playFrequencyTone(targetVal, 100, 95);
+      set({
+        llData: nextData,
+        llActivePointer: targetIdx < nextData.length ? targetIdx : null,
+        llPrevPointer: targetIdx > 0 ? targetIdx - 1 : null,
+        metrics: { ...state.metrics, swaps: state.metrics.swaps + 1, accesses: state.metrics.accesses + targetIdx + 1 },
+        status: `Deleted node(${targetVal}) at index [${targetIdx}]`,
+        statusColor: '#f59e0b',
+        llNarrative: {
+          action: 'delete',
+          badge: 'DELETE',
+          reason: `Located node(${targetVal}) at index [${targetIdx}]. Bypassed node pointer: predecessor.next now points directly to successor.`,
+        },
+      });
+      setTimeout(() => {
+        set({ llActivePointer: null, llPrevPointer: null });
+      }, 900);
+    } else if (action === 'delete_head') {
+      if (state.llData.length === 0) {
+        if (state.soundEnabled) playFrequencyTone(10, 100, 160);
+        set({
+          status: 'Underflow: List is empty!',
+          statusColor: '#f43f5e',
+          llNarrative: { action: 'underflow', badge: 'EMPTY', reason: 'Cannot delete head from an empty list.', isError: true },
+        });
+        return;
+      }
+      const removed = state.llData[0];
+      const nextData = state.llData.slice(1);
+      if (state.soundEnabled) playFrequencyTone(removed, 100, 95);
+      set({
+        llData: nextData,
+        llActivePointer: 0,
+        llPrevPointer: null,
+        metrics: { ...state.metrics, accesses: state.metrics.accesses + 1 },
+        status: `Removed Head node(${removed})`,
+        statusColor: '#f59e0b',
+        llNarrative: {
+          action: 'delete_head',
+          badge: 'DELETE HEAD',
+          reason: `Removed head node(${removed}) in O(1) time. Head now points to successor (${nextData[0] ?? 'null'}).`,
+        },
+      });
+      setTimeout(() => { set({ llActivePointer: null }); }, 800);
+    } else if (action === 'delete_tail') {
+      if (state.llData.length === 0) {
+        if (state.soundEnabled) playFrequencyTone(10, 100, 160);
+        set({
+          status: 'Underflow: List is empty!',
+          statusColor: '#f43f5e',
+          llNarrative: { action: 'underflow', badge: 'EMPTY', reason: 'Cannot delete tail from an empty list.', isError: true },
+        });
+        return;
+      }
+      const removed = state.llData[state.llData.length - 1];
+      const nextData = state.llData.slice(0, -1);
+      if (state.soundEnabled) playFrequencyTone(removed, 100, 95);
+      set({
+        llData: nextData,
+        llActivePointer: nextData.length - 1 >= 0 ? nextData.length - 1 : null,
+        llPrevPointer: null,
+        metrics: { ...state.metrics, accesses: state.metrics.accesses + state.llData.length },
+        status: `Removed Tail node(${removed})`,
+        statusColor: '#f59e0b',
+        llNarrative: {
+          action: 'delete_tail',
+          badge: 'DELETE TAIL',
+          reason: mode === 'doubly'
+            ? `Removed tail node(${removed}) in O(1) time via tail.prev reference.`
+            : `Traversed to (tail - 1) node and set next = null in O(n) time.`,
+        },
+      });
+      setTimeout(() => { set({ llActivePointer: null }); }, 800);
+    } else if (action === 'fill_sample') {
+      const sample = [12, 35, 64, 88];
+      set({
+        llData: sample,
+        llActivePointer: null,
+        llPrevPointer: null,
+        status: 'Loaded sample list (4 nodes)',
+        statusColor: '#38bdf8',
+        llNarrative: {
+          action: 'sample',
+          badge: 'SAMPLE',
+          reason: 'Loaded standard 4-node test dataset. Ready for operations.',
+        },
+      });
+    } else if (action === 'fill_max') {
+      const full = [10, 20, 30, 40, 50, 60, 70, 80];
+      set({
+        llData: full,
+        llActivePointer: null,
+        llPrevPointer: null,
+        status: 'Filled list to maximum capacity (8 nodes)',
+        statusColor: '#3b82f6',
+        llNarrative: {
+          action: 'fill_max',
+          badge: 'CAPACITY',
+          reason: 'Loaded 8 nodes (maximum capacity limit). Next insertion will demonstrate Overflow guard.',
+        },
+      });
+    } else if (action === 'clear') {
+      set({
+        llData: [],
+        llActivePointer: null,
+        llPrevPointer: null,
+        status: 'List cleared',
+        statusColor: '',
+        llNarrative: {
+          action: 'clear',
+          badge: 'CLEARED',
+          reason: 'Cleared all node references. Head = null. Memory deallocated.',
+        },
+      });
+    }
+  },
+  llSearch: async (target: number) => {
+    const state = get();
+    const data = state.llData;
+    if (data.length === 0) {
+      if (state.soundEnabled) playFrequencyTone(10, 100, 160);
+      set({
+        status: 'Search failed: List is empty!',
+        statusColor: '#f43f5e',
+        llNarrative: { action: 'search_fail', badge: 'EMPTY', reason: 'Cannot search an empty linked list.', isError: true },
+      });
+      return false;
+    }
+
+    set((s) => ({
+      llTraversals: s.llTraversals + 1,
+      status: `Searching for key ${target}...`,
+      statusColor: '#38bdf8',
+    }));
+
+    for (let i = 0; i < data.length; i++) {
+      const val = data[i];
+      if (get().soundEnabled) playFrequencyTone(val, 100, 50);
+      set({
+        llActivePointer: i,
+        llPrevPointer: i > 0 ? i - 1 : null,
+        llNarrative: {
+          action: 'probing',
+          badge: 'TRAVERSE',
+          reason: `Inspecting node [${i}] = ${val}. Comparing against search key ${target}...`,
+        },
+      });
+      await new Promise((res) => setTimeout(res, 380));
+
+      if (val === target) {
+        if (get().soundEnabled) playFrequencyTone(target, 100, 140);
+        set({
+          status: `Found key ${target} at node index [${i}]!`,
+          statusColor: '#10b981',
+          llNarrative: {
+            action: 'found',
+            badge: 'FOUND',
+            reason: `Target ${target} matched node at index [${i}] in ${i + 1} pointer hop(s)! Time complexity: O(${i + 1}).`,
+          },
+        });
+        setTimeout(() => { set({ llActivePointer: null, llPrevPointer: null }); }, 1500);
+        return true;
+      }
+    }
+
+    if (get().soundEnabled) playFrequencyTone(10, 100, 160);
+    set({
+      status: `Key ${target} not found in list`,
+      statusColor: '#f43f5e',
+      llNarrative: {
+        action: 'not_found',
+        badge: 'NOT FOUND',
+        reason: state.llMode === 'circular'
+          ? `Traversed all ${data.length} nodes and looped back to Head. Key ${target} does not exist in list.`
+          : `Reached end of list (next == null) after ${data.length} hops. Key ${target} does not exist.`,
+        isError: true,
+      },
+    });
+    setTimeout(() => { set({ llActivePointer: null, llPrevPointer: null }); }, 1200);
+    return false;
+  },
+  llReverse: async () => {
+    const state = get();
+    const data = [...state.llData];
+    if (data.length <= 1) {
+      set({
+        status: 'List has <= 1 nodes; reverse is trivial',
+        statusColor: '',
+        llNarrative: { action: 'reverse', badge: 'REVERSED', reason: 'List of size <= 1 remains identical when reversed.' },
+      });
+      return;
+    }
+
+    set({
+      status: 'Reversing linked list pointers in-place...',
+      statusColor: '#a855f7',
+      llNarrative: {
+        action: 'reversing',
+        badge: 'REVERSING',
+        reason: 'Classical in-place pointer reversal: prev = null, curr = head. Splicing curr.next = prev on each hop.',
+      },
+    });
+
+    for (let i = 0; i < data.length; i++) {
+      set({ llActivePointer: i, llPrevPointer: i > 0 ? i - 1 : null });
+      if (get().soundEnabled) playFrequencyTone(data[i], 100, 60);
+      await new Promise((res) => setTimeout(res, 280));
+    }
+
+    data.reverse();
+    if (get().soundEnabled) playFrequencyTone(80, 100, 120);
+    set({
+      llData: data,
+      llActivePointer: 0,
+      llPrevPointer: null,
+      status: 'Linked list successfully reversed',
+      statusColor: '#10b981',
+      llNarrative: {
+        action: 'reversed',
+        badge: 'REVERSED',
+        reason: `Reversal complete in O(n) time and O(1) auxiliary space. Previous Tail (${data[0]}) is now new Head.`,
+      },
+    });
+    setTimeout(() => { set({ llActivePointer: null }); }, 1200);
   },
   setBst: (bst) => set({ bst }),
   setHeap: (heap) => set({ heap }),
@@ -881,7 +1305,23 @@ export const useAppStore = create<AppState>((set, get) => ({
       },
     });
   },
-  resetLinkedListData: () => set({ llData: [] }),
+  resetLinkedListData: () => {
+    const mode = get().llMode || 'singly';
+    set({
+      llData: [12, 35, 64, 88],
+      llActivePointer: null,
+      llPrevPointer: null,
+      llTraversals: 0,
+      metrics: { comparisons: 0, swaps: 0, accesses: 4 },
+      status: 'Ready',
+      statusColor: '',
+      llNarrative: {
+        action: 'ready',
+        badge: 'READY',
+        reason: `Initialized ${LINKED_LIST_INFOS[mode]?.name || 'Linked List'} with 4 sample nodes. Ready for operations.`,
+      },
+    });
+  },
 
   // Build steps from current module/algo/data
   buildSteps: () => {

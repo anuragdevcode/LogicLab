@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
-import { STACK_CAPACITY } from '@/engines';
+import { STACK_CAPACITY, LINKED_LIST_CAPACITY } from '@/engines';
 
 const MetricsBar: React.FC = () => {
   const module = useAppStore((s) => s.module);
@@ -9,28 +9,52 @@ const MetricsBar: React.FC = () => {
   const metrics = useAppStore((s) => s.metrics);
   const stackData = useAppStore((s) => s.stackData);
   const queueCount = useAppStore((s) => s.queueCount);
+  const llData = useAppStore((s) => s.llData);
   const status = useAppStore((s) => s.status);
   const statusColor = useAppStore((s) => s.statusColor);
 
   const isStackModule = module === 'stack';
+  const isLLModule = module === 'linkedlist';
   const isQueue = algo === 'queue' || algo === 'circular_queue';
 
-  const card1Label = isStackModule
+  const card1Label = isLLModule
+    ? 'Nodes'
+    : isStackModule
     ? isQueue
       ? 'Enqueues'
       : 'Pushes'
     : 'Comparisons';
-  const card1Value = isStackModule ? metrics.accesses : metrics.comparisons;
+  const card1Value = isLLModule
+    ? `${llData.length} / ${LINKED_LIST_CAPACITY}`
+    : isStackModule
+    ? metrics.accesses
+    : metrics.comparisons;
 
-  const card2Label = isStackModule
+  const card2Label = isLLModule
+    ? 'Head'
+    : isStackModule
     ? isQueue
       ? 'Dequeues'
       : 'Pops'
     : 'Swaps';
-  const card2Value = isStackModule ? metrics.swaps : metrics.swaps;
+  const card2Value = isLLModule
+    ? llData.length > 0
+      ? `${llData[0]}`
+      : 'null'
+    : isStackModule
+    ? metrics.swaps
+    : metrics.swaps;
 
-  const card3Label = isStackModule ? 'Occupancy' : 'Array Accesses';
-  const card3Value = isStackModule
+  const card3Label = isLLModule
+    ? 'Tail'
+    : isStackModule
+    ? 'Occupancy'
+    : 'Array Accesses';
+  const card3Value = isLLModule
+    ? llData.length > 0
+      ? `${llData[llData.length - 1]}`
+      : 'null'
+    : isStackModule
     ? `${isQueue ? queueCount : stackData.length} / ${STACK_CAPACITY}`
     : metrics.accesses;
 

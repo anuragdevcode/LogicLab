@@ -175,7 +175,7 @@ const Sidebar: React.FC = () => {
 
         {/* Footer */}
         <div className="p-3 border-t border-white/10 text-center text-[10px] font-mono text-textSecondary/50">
-          Made by Fantastic 4 · B.Tech CSE
+          Made by Anurag
         </div>
       </aside>
     </>

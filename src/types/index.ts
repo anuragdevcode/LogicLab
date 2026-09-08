@@ -167,6 +167,15 @@ export interface StackNarrative {
   isError?: boolean;
 }
 
+export type LinkedListMode = 'singly' | 'doubly' | 'circular';
+
+export interface LinkedListNarrative {
+  action: string;
+  reason: string;
+  badge: string;
+  isError?: boolean;
+}
+
 // ─── Module Configuration ───
 export interface ModuleConfig {
   title: string;

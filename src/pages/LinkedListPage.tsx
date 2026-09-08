@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import LinkedListView from '@/components/visualizers/LinkedListView';
-import { LINKED_LIST_INFO } from '@/engines';
+import LinkedListControls from '@/components/controls/LinkedListControls';
+import { SINGLY_LL_INFO } from '@/engines';
 
 export default function LinkedListPage() {
   const setModule = useAppStore((s) => s.setModule);
@@ -13,18 +14,27 @@ export default function LinkedListPage() {
   const pause = useAppStore((s) => s.pause);
   const setModuleTitle = useAppStore((s) => s.setModuleTitle);
   const setAlgoList = useAppStore((s) => s.setAlgoList);
+  const setCustomControls = useAppStore((s) => s.setCustomControls);
 
   useEffect(() => {
     setModule('linkedlist');
     setAlgo('singly');
     setModuleTitle('Linked List');
-    setAlgoList([]);
+    setAlgoList([
+      { id: 'singly', name: 'Singly Linked List' },
+      { id: 'doubly', name: 'Doubly Linked List' },
+      { id: 'circular', name: 'Circular Linked List' },
+    ]);
     resetLinkedListData();
-    loadInfo(LINKED_LIST_INFO);
+    loadInfo(SINGLY_LL_INFO);
     hidePlayControls(true);
     showGenerateButton(false);
+    setCustomControls(<LinkedListControls />);
 
-    return () => { pause(); };
+    return () => {
+      pause();
+      setCustomControls(null);
+    };
   }, []);
 
   return <LinkedListView />;
