@@ -28,6 +28,14 @@ export {
   BST,
   Node as BSTNode,
 } from './bst';
-export { HEAP_INFO, Heap } from './heap';
+export {
+  HEAP_INFO,
+  HEAP_INFOS,
+  MIN_HEAP_INFO,
+  MAX_HEAP_INFO,
+  HEAP_SORT_INFO,
+  HEAP_CAPACITY,
+  Heap,
+} from './heap';
 export { GRAPH_INFO, DEFAULT_NODES, DEFAULT_EDGES, bfsGen, dfsGen, dijkstraGen } from './graph';
 export { DP_ALGORITHMS } from './dp';

@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { TreeCanvas } from '@/components/canvas/TreeCanvas';
+import { HeapView } from '@/components/visualizers/HeapView';
 import HeapControls from '@/components/controls/HeapControls';
-import { HEAP_INFO } from '@/engines';
+import { HEAP_INFOS } from '@/engines';
 
 export default function HeapPage() {
   const setModule = useAppStore((s) => s.setModule);
@@ -14,26 +14,28 @@ export default function HeapPage() {
   const pause = useAppStore((s) => s.pause);
   const setModuleTitle = useAppStore((s) => s.setModuleTitle);
   const setAlgoList = useAppStore((s) => s.setAlgoList);
+  const setCustomControls = useAppStore((s) => s.setCustomControls);
 
   useEffect(() => {
     setModule('heap');
     setAlgo('minheap');
-    setModuleTitle('Heap / HeapSort');
-    setAlgoList([]);
+    setModuleTitle('Heap / Priority Queue');
+    setAlgoList([
+      { id: 'minheap', name: 'Min Heap' },
+      { id: 'maxheap', name: 'Max Heap' },
+      { id: 'heapsort', name: 'Heap Sort' },
+    ]);
     initHeap('minheap');
-    loadInfo(HEAP_INFO['minheap']);
+    loadInfo(HEAP_INFOS.minheap);
     hidePlayControls(true);
     showGenerateButton(false);
+    setCustomControls(<HeapControls />);
 
-    return () => { pause(); };
+    return () => {
+      pause();
+      setCustomControls(null);
+    };
   }, []);
 
-  return (
-    <div className="relative w-full h-full flex flex-col">
-      <HeapControls />
-      <div className="flex-1 relative">
-        <TreeCanvas type="heap" />
-      </div>
-    </div>
-  );
+  return <HeapView />;
 }

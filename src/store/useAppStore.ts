@@ -12,6 +12,8 @@ import {
   LinkedListNarrative,
   BSTMode,
   BSTNarrative,
+  HeapMode,
+  HeapNarrative,
 } from '@/types';
 import { BST } from '@/engines/bst';
 import { Heap } from '@/engines/heap';
@@ -32,6 +34,8 @@ import {
   STACK_CAPACITY,
   STACK_DATA_STRUCTURES,
   HEAP_INFO,
+  HEAP_INFOS,
+  HEAP_CAPACITY,
   LINKED_LIST_CAPACITY,
   LINKED_LIST_INFOS,
   BST_CAPACITY,
@@ -101,8 +105,14 @@ export interface AppState {
   bstFoundNode: number | null;
   bstNarrative: BSTNarrative | null;
   bstTraversalOutput: number[] | null;
+  // Heap
   heap: Heap | null;
   heapType: 'min' | 'max';
+  heapMode: HeapMode;
+  heapActiveIndices: number[];
+  heapSwappingIndices: [number, number] | null;
+  heapNarrative: HeapNarrative | null;
+  heapSortedOutput: number[] | null;
   stackData: number[];
   minStackData: number[];
   queueData: (number | null)[];
@@ -138,6 +148,12 @@ export interface AppState {
   bstLoadPreset: (preset: 'balanced' | 'skewed') => void;
   setHeap: (heap: Heap | null) => void;
   setHeapType: (type: 'min' | 'max') => void;
+  setHeapMode: (mode: HeapMode) => void;
+  heapInsert: (val: number | string) => Promise<boolean>;
+  heapExtract: () => Promise<number | null>;
+  heapPeek: () => number | null;
+  heapBuild: (preset: 'sample' | 'random' | 'full' | 'sorted') => void;
+  heapRunSort: () => Promise<number[]>;
 
   // Graph
   graphAlgo: string;
@@ -258,8 +274,34 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (BST_INFOS[mode]) {
         get().loadInfo(BST_INFOS[mode]);
       }
-    } else if (currentMod === 'heap' && HEAP_INFO[algo]) {
-      get().loadInfo(HEAP_INFO[algo]);
+    } else if (currentMod === 'heap') {
+      const mode = (['minheap', 'maxheap', 'heapsort'].includes(algo) ? algo : 'minheap') as HeapMode;
+      const type = mode === 'maxheap' || mode === 'heapsort' ? 'max' : 'min';
+      const tree = new Heap(type);
+      const sample =
+        type === 'min'
+          ? [12, 24, 18, 52, 36, 45, 29]
+          : [88, 65, 74, 32, 54, 42, 60];
+      tree.heapify(sample);
+
+      set({
+        heap: tree,
+        heapType: type,
+        heapMode: mode,
+        heapActiveIndices: [],
+        heapSwappingIndices: null,
+        heapSortedOutput: null,
+        status: `Switched to ${HEAP_INFOS[mode]?.name || 'Heap'}`,
+        statusColor: '',
+        heapNarrative: {
+          action: 'mode_switch',
+          badge: 'PARADIGM',
+          reason: HEAP_INFOS[mode]?.description || 'Heap mode selected.',
+        },
+      });
+      if (HEAP_INFOS[mode]) {
+        get().loadInfo(HEAP_INFOS[mode]);
+      }
     }
   },
 
@@ -388,6 +430,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   bstTraversalOutput: null,
   heap: null,
   heapType: 'min',
+  heapMode: 'minheap',
+  heapActiveIndices: [],
+  heapSwappingIndices: null,
+  heapNarrative: {
+    action: 'ready',
+    badge: 'READY',
+    reason: 'Min Heap initialized. Priority Queue tree with root holding absolute minimum.',
+  },
+  heapSortedOutput: null,
   stackData: [24, 45, 68],
   minStackData: [24, 24, 24],
   queueData: [15, 32, 48, null, null, null, null, null],
@@ -1667,6 +1718,470 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setHeap: (heap) => set({ heap }),
   setHeapType: (type) => set({ heapType: type }),
+  setHeapMode: (mode) => {
+    const type = mode === 'maxheap' || mode === 'heapsort' ? 'max' : 'min';
+    const tree = new Heap(type);
+    const sample =
+      type === 'min'
+        ? [12, 24, 18, 52, 36, 45, 29]
+        : [88, 65, 74, 32, 54, 42, 60];
+    tree.heapify(sample);
+    set({
+      heap: tree,
+      heapType: type,
+      heapMode: mode,
+      heapActiveIndices: [],
+      heapSwappingIndices: null,
+      heapSortedOutput: null,
+      status: `Switched to ${HEAP_INFOS[mode]?.name || 'Heap'}`,
+      statusColor: '',
+      heapNarrative: {
+        action: 'mode_switch',
+        badge: 'PARADIGM',
+        reason: HEAP_INFOS[mode]?.description || 'Heap mode selected.',
+      },
+    });
+    if (HEAP_INFOS[mode]) {
+      get().loadInfo(HEAP_INFOS[mode]);
+    }
+  },
+
+  heapInsert: async (val) => {
+    const num = Number(val);
+    if (!Number.isFinite(num)) {
+      set({
+        status: 'Enter a valid number to insert',
+        statusColor: '#f43f5e',
+        heapNarrative: {
+          action: 'error',
+          badge: 'INVALID',
+          reason: 'Input is not a valid integer. Enter a numeric value between 0 and 999.',
+          isError: true,
+        },
+      });
+      return false;
+    }
+
+    let tree = get().heap;
+    if (!tree) {
+      tree = new Heap(get().heapType);
+    }
+
+    if (tree.data.length >= HEAP_CAPACITY) {
+      if (get().soundEnabled) playFrequencyTone(15, 100, 160);
+      set({
+        status: `Heap at capacity: Cannot exceed maximum ${HEAP_CAPACITY} nodes!`,
+        statusColor: '#f43f5e',
+        heapNarrative: {
+          action: 'overflow',
+          badge: 'CAPACITY',
+          reason: `Capacity limit reached (${HEAP_CAPACITY} nodes = 4 complete binary levels). Extract nodes before inserting.`,
+          isError: true,
+        },
+      });
+      return false;
+    }
+
+    const data = [...tree.data, num];
+    let i = data.length - 1;
+    const cloned = Object.assign(new Heap(tree.type), { data });
+
+    set((s) => ({
+      heap: cloned,
+      heapActiveIndices: [i],
+      heapSwappingIndices: null,
+      metrics: {
+        ...s.metrics,
+        accesses: s.metrics.accesses + 1,
+      },
+      status: `Inserted ${num} at leaf slot [${i}]. Sifting up...`,
+      statusColor: '#3b82f6',
+      heapNarrative: {
+        action: 'insert',
+        badge: 'INSERT',
+        reason: `Placed key ${num} at next open slot [${i}] (complete binary tree property). Sifting up to restore ${tree.type}-heap property.`,
+      },
+    }));
+
+    if (get().soundEnabled) playFrequencyTone(num, 100, 70);
+    await new Promise((r) => setTimeout(r, 420));
+
+    // Sift up loop
+    while (i > 0) {
+      const p = Math.floor((i - 1) / 2);
+      set((s) => ({
+        heapActiveIndices: [i, p],
+        metrics: {
+          ...s.metrics,
+          comparisons: s.metrics.comparisons + 1,
+          accesses: s.metrics.accesses + 2,
+        },
+        status: `Comparing child [${i}] (${data[i]}) with parent [${p}] (${data[p]})`,
+        statusColor: '#3b82f6',
+        heapNarrative: {
+          action: 'compare',
+          badge: 'SIFT UP',
+          reason: `Comparing child [${i}]=${data[i]} with parent [${p}]=${data[p]}. Checking if ${tree.type === 'min' ? `${data[i]} < ${data[p]}` : `${data[i]} > ${data[p]}`}.`,
+        },
+      }));
+
+      if (get().soundEnabled) playFrequencyTone(data[i], 100, 50);
+      await new Promise((r) => setTimeout(r, 380));
+
+      const violates =
+        tree.type === 'min' ? data[i] < data[p] : data[i] > data[p];
+
+      if (violates) {
+        [data[i], data[p]] = [data[p], data[i]];
+        const afterSwap = Object.assign(new Heap(tree.type), { data: [...data] });
+
+        set((s) => ({
+          heap: afterSwap,
+          heapSwappingIndices: [i, p],
+          heapActiveIndices: [p],
+          metrics: {
+            ...s.metrics,
+            swaps: s.metrics.swaps + 1,
+            accesses: s.metrics.accesses + 2,
+          },
+          status: `Swapped [${i}] (${data[p]}) with [${p}] (${data[i]})`,
+          statusColor: '#10b981',
+          heapNarrative: {
+            action: 'swap',
+            badge: 'SWAP',
+            reason: `Invariant violated: swapped child [${i}] with parent [${p}]. Node moved up to slot [${p}].`,
+          },
+        }));
+
+        if (get().soundEnabled) playFrequencyTone(data[p] + 20, 100, 80);
+        await new Promise((r) => setTimeout(r, 420));
+        i = p;
+      } else {
+        set({
+          status: `Heap invariant satisfied at slot [${i}]`,
+          statusColor: '#10b981',
+          heapNarrative: {
+            action: 'satisfied',
+            badge: 'ORDERED',
+            reason: `Heap invariant satisfied: child ${data[i]} respects parent ${data[p]}. Sift-up complete.`,
+          },
+        });
+        break;
+      }
+    }
+
+    set({
+      heapActiveIndices: [],
+      heapSwappingIndices: null,
+      status: `Successfully inserted ${num} into heap`,
+      statusColor: '#10b981',
+    });
+
+    return true;
+  },
+
+  heapExtract: async () => {
+    const tree = get().heap;
+    if (!tree || tree.data.length === 0) {
+      set({
+        status: 'Heap is empty: nothing to extract',
+        statusColor: '#f43f5e',
+        heapNarrative: {
+          action: 'underflow',
+          badge: 'EMPTY',
+          reason: 'Cannot extract from an empty heap (0 elements).',
+          isError: true,
+        },
+      });
+      return null;
+    }
+
+    const data = [...tree.data];
+    const top = data[0];
+
+    if (data.length === 1) {
+      data.pop();
+      const emptyHeap = Object.assign(new Heap(tree.type), { data: [] });
+      if (get().soundEnabled) playFrequencyTone(top, 100, 120);
+      set({
+        heap: emptyHeap,
+        heapActiveIndices: [],
+        heapSwappingIndices: null,
+        metrics: { ...get().metrics, accesses: get().metrics.accesses + 1 },
+        status: `Extracted only remaining root element ${top}`,
+        statusColor: '#10b981',
+        heapNarrative: {
+          action: 'extract',
+          badge: 'EXTRACT',
+          reason: `Extracted sole root element ${top}. Heap is now empty.`,
+        },
+      });
+      return top;
+    }
+
+    // Step 1: Highlight root extraction
+    set((s) => ({
+      heapActiveIndices: [0],
+      heapSwappingIndices: null,
+      status: `Extracting root [0]=${top}. Moving last leaf [${data.length - 1}]=${data[data.length - 1]} to root.`,
+      statusColor: '#3b82f6',
+      heapNarrative: {
+        action: 'extract_start',
+        badge: 'EXTRACT',
+        reason: `Removed root [0] (${top}). Moving last element [${data.length - 1}] (${data[data.length - 1]}) to slot [0] to maintain complete binary tree structure.`,
+      },
+    }));
+
+    if (get().soundEnabled) playFrequencyTone(top, 100, 100);
+    await new Promise((r) => setTimeout(r, 450));
+
+    // Step 2: Move last to root
+    const last = data.pop()!;
+    data[0] = last;
+    let stepHeap = Object.assign(new Heap(tree.type), { data: [...data] });
+
+    set((s) => ({
+      heap: stepHeap,
+      heapActiveIndices: [0],
+      metrics: {
+        ...s.metrics,
+        accesses: s.metrics.accesses + 2,
+      },
+      status: `Placed ${last} at root [0]. Sifting down...`,
+      statusColor: '#3b82f6',
+      heapNarrative: {
+        action: 'sift_start',
+        badge: 'SIFT DOWN',
+        reason: `Placed former leaf ${last} at root [0]. Sifting down against children to restore heap invariant.`,
+      },
+    }));
+
+    await new Promise((r) => setTimeout(r, 420));
+
+    // Step 3: Sift down loop
+    let i = 0;
+    while (true) {
+      let best = i;
+      const l = 2 * i + 1;
+      const r = 2 * i + 2;
+
+      const candidates = [i];
+      if (l < data.length) candidates.push(l);
+      if (r < data.length) candidates.push(r);
+
+      set((s) => ({
+        heapActiveIndices: candidates,
+        metrics: {
+          ...s.metrics,
+          comparisons: s.metrics.comparisons + (candidates.length - 1),
+          accesses: s.metrics.accesses + candidates.length,
+        },
+        status: `Inspecting slot [${i}] with available children`,
+        statusColor: '#3b82f6',
+        heapNarrative: {
+          action: 'compare_children',
+          badge: 'SIFT DOWN',
+          reason: `Inspecting parent [${i}]=${data[i]} against ${l < data.length ? `left [${l}]=${data[l]}` : 'no left'} and ${r < data.length ? `right [${r}]=${data[r]}` : 'no right'}.`,
+        },
+      }));
+
+      if (get().soundEnabled) playFrequencyTone(data[i], 100, 50);
+      await new Promise((r) => setTimeout(r, 380));
+
+      if (l < data.length) {
+        const leftViolates =
+          tree.type === 'min' ? data[l] < data[best] : data[l] > data[best];
+        if (leftViolates) best = l;
+      }
+
+      if (r < data.length) {
+        const rightViolates =
+          tree.type === 'min' ? data[r] < data[best] : data[r] > data[best];
+        if (rightViolates) best = r;
+      }
+
+      if (best === i) {
+        set({
+          status: `Heap invariant restored at slot [${i}]`,
+          statusColor: '#10b981',
+          heapNarrative: {
+            action: 'satisfied',
+            badge: 'RESTORED',
+            reason: `Heap property restored: slot [${i}]=${data[i]} dominates all children.`,
+          },
+        });
+        break;
+      }
+
+      // Swap parent with best child
+      [data[i], data[best]] = [data[best], data[i]];
+      stepHeap = Object.assign(new Heap(tree.type), { data: [...data] });
+
+      set((s) => ({
+        heap: stepHeap,
+        heapSwappingIndices: [i, best],
+        heapActiveIndices: [best],
+        metrics: {
+          ...s.metrics,
+          swaps: s.metrics.swaps + 1,
+          accesses: s.metrics.accesses + 2,
+        },
+        status: `Swapped [${i}] with [${best}]`,
+        statusColor: '#10b981',
+        heapNarrative: {
+          action: 'swap',
+          badge: 'SWAP',
+          reason: `Swapped [${i}] (${data[best]}) with [${best}] (${data[i]}). Descended to slot [${best}].`,
+        },
+      }));
+
+      if (get().soundEnabled) playFrequencyTone(data[best] + 15, 100, 80);
+      await new Promise((r) => setTimeout(r, 420));
+      i = best;
+    }
+
+    set({
+      heapActiveIndices: [],
+      heapSwappingIndices: null,
+      status: `Extracted root value ${top}. Heap invariants intact.`,
+      statusColor: '#10b981',
+      heapNarrative: {
+        action: 'complete',
+        badge: 'EXTRACTED',
+        reason: `Extraction complete: returned ${top}. Priority queue invariant restored across ${data.length} remaining nodes.`,
+      },
+    });
+
+    return top;
+  },
+
+  heapPeek: () => {
+    const tree = get().heap;
+    if (!tree || tree.data.length === 0) {
+      set({
+        status: 'Heap is empty: peek returned null',
+        statusColor: '#f43f5e',
+        heapNarrative: {
+          action: 'underflow',
+          badge: 'EMPTY',
+          reason: 'Cannot peek an empty heap. 0 elements present.',
+          isError: true,
+        },
+      });
+      return null;
+    }
+
+    const top = tree.data[0];
+    if (get().soundEnabled) playFrequencyTone(top + 40, 100, 150);
+
+    set((s) => ({
+      heapActiveIndices: [0],
+      metrics: { ...s.metrics, accesses: s.metrics.accesses + 1 },
+      status: `Peek: Root index [0] = ${top}`,
+      statusColor: '#10b981',
+      heapNarrative: {
+        action: 'peek',
+        badge: 'PEEK O(1)',
+        reason: `Peek inspected root index [0] = ${top} in O(1) time (${tree.type === 'min' ? 'absolute minimum' : 'absolute maximum'}).`,
+      },
+    }));
+
+    setTimeout(() => {
+      if (get().heapActiveIndices.includes(0)) {
+        set({ heapActiveIndices: [] });
+      }
+    }, 1200);
+
+    return top;
+  },
+
+  heapBuild: (preset) => {
+    const type = get().heapType;
+    let values: number[] = [];
+
+    if (preset === 'sample') {
+      values =
+        type === 'min'
+          ? [12, 24, 18, 52, 36, 45, 29]
+          : [88, 65, 74, 32, 54, 42, 60];
+    } else if (preset === 'random') {
+      values = Array.from({ length: 7 }, () => Math.floor(Math.random() * 85) + 12);
+    } else if (preset === 'full') {
+      values = Array.from({ length: 15 }, () => Math.floor(Math.random() * 88) + 11);
+    } else if (preset === 'sorted') {
+      values = [10, 20, 30, 40, 50, 60, 70];
+    }
+
+    const tree = new Heap(type);
+    tree.heapify(values);
+
+    set({
+      heap: tree,
+      heapActiveIndices: [],
+      heapSwappingIndices: null,
+      heapSortedOutput: null,
+      metrics: { comparisons: 0, swaps: 0, accesses: values.length },
+      status: `Built ${type}-heap with ${values.length} nodes`,
+      statusColor: '#10b981',
+      heapNarrative: {
+        action: 'build',
+        badge: 'HEAPIFY O(n)',
+        reason: `Built ${type}-heap with ${values.length} elements using Floyd's bottom-up algorithm in O(n) linear time.`,
+      },
+    });
+
+    if (get().soundEnabled) playFrequencyTone(60, 100, 100);
+  },
+
+  heapRunSort: async () => {
+    const tree = get().heap;
+    if (!tree || tree.data.length === 0) {
+      set({
+        status: 'Heap is empty: cannot sort',
+        statusColor: '#f43f5e',
+        heapNarrative: {
+          action: 'underflow',
+          badge: 'EMPTY',
+          reason: 'Cannot run Heap Sort on empty heap.',
+          isError: true,
+        },
+      });
+      return [];
+    }
+
+    const sorted: number[] = [];
+    set({
+      heapSortedOutput: [],
+      status: 'Beginning Heap Sort extractions...',
+      statusColor: '#3b82f6',
+      heapNarrative: {
+        action: 'heapsort_start',
+        badge: 'HEAP SORT',
+        reason: 'Repeatedly extracting root element into sorted output stream in O(n log n) total time.',
+      },
+    });
+
+    while (get().heap && get().heap!.data.length > 0) {
+      const extracted = await get().heapExtract();
+      if (extracted !== null) {
+        sorted.push(extracted);
+        set({ heapSortedOutput: [...sorted] });
+        await new Promise((r) => setTimeout(r, 180));
+      }
+    }
+
+    set({
+      status: `Heap Sort complete: [${sorted.join(', ')}]`,
+      statusColor: '#10b981',
+      heapNarrative: {
+        action: 'heapsort_done',
+        badge: 'SORTED',
+        reason: `Heap Sort complete: extracted all elements into sorted sequence [${sorted.join(', ')}] in O(n log n) time.`,
+      },
+    });
+
+    return sorted;
+  },
 
   // Graph
   graphAlgo: 'bfs',
@@ -1734,8 +2249,32 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().loadInfo(BST_INFOS.bst);
   },
   initHeap: (type) => {
-    const heapType = (type === 'maxheap' ? 'max' : 'min') as 'min' | 'max';
-    set({ heap: new Heap(heapType), heapType });
+    const heapType = (type === 'maxheap' || type === 'heapsort' ? 'max' : 'min') as 'min' | 'max';
+    const mode = (type === 'maxheap' || type === 'heapsort' ? type : 'minheap') as HeapMode;
+    const tree = new Heap(heapType);
+    const sample =
+      heapType === 'min'
+        ? [12, 24, 18, 52, 36, 45, 29]
+        : [88, 65, 74, 32, 54, 42, 60];
+    tree.heapify(sample);
+
+    set({
+      heap: tree,
+      heapType,
+      heapMode: mode,
+      heapActiveIndices: [],
+      heapSwappingIndices: null,
+      heapSortedOutput: null,
+      metrics: { comparisons: 0, swaps: 0, accesses: 7 },
+      status: 'Ready',
+      statusColor: '',
+      heapNarrative: {
+        action: 'ready',
+        badge: 'READY',
+        reason: `${heapType === 'min' ? 'Min Heap' : 'Max Heap'} initialized with 7 nodes. Root holds ${heapType === 'min' ? 'minimum' : 'maximum'} element.`,
+      },
+    });
+    get().loadInfo(HEAP_INFOS[mode]);
   },
   initGraph: () => {
     // Graph uses default nodes/edges, no initialization needed

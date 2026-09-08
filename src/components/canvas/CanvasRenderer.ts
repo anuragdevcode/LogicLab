@@ -370,7 +370,9 @@ export function drawTree(
   layout: TreeLayoutItem[],
   activeNodes: number[] = [],
   foundNode: number | null = null,
-  hoveredVal: number | null = null
+  hoveredVal: number | null = null,
+  swappingIndices: [number, number] | null = null,
+  showIndices = false
 ) {
   clear(ctx, w, h);
   if (!layout || !layout.length) {
@@ -399,12 +401,24 @@ export function drawTree(
   layout
     .filter((n): n is import('@/types').TreeLayoutNode => !('edge' in n) && n.val !== undefined)
     .forEach((n) => {
+      const isSwapping =
+        swappingIndices !== null &&
+        n.idx !== undefined &&
+        (swappingIndices[0] === n.idx || swappingIndices[1] === n.idx);
       const isFound = foundNode === n.val;
-      const isActive = activeNodes.includes(n.val);
+      const isActive =
+        activeNodes.includes(n.val) ||
+        (n.idx !== undefined && activeNodes.includes(n.idx));
       const isHovered = hoveredVal === n.val;
 
       ctx.save();
-      if (isFound) {
+      if (isSwapping) {
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = '#78350f';
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 2.5;
+      } else if (isFound) {
         ctx.shadowColor = '#10b981';
         ctx.shadowBlur = 18;
         ctx.fillStyle = '#064e3b';
@@ -436,12 +450,28 @@ export function drawTree(
       ctx.restore();
 
       // Node value label
-      ctx.fillStyle = isFound ? '#a7f3d0' : isActive ? '#bfdbfe' : isHovered ? '#38bdf8' : '#f8fafc';
+      ctx.fillStyle = isSwapping
+        ? '#fef08a'
+        : isFound
+        ? '#a7f3d0'
+        : isActive
+        ? '#bfdbfe'
+        : isHovered
+        ? '#38bdf8'
+        : '#f8fafc';
       ctx.font = "bold 13px 'JetBrains Mono', monospace";
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(n.val.toString(), n.x, n.y);
       ctx.textBaseline = 'alphabetic';
+
+      // Optional Index label (for Heap complete binary tree array mapping)
+      if (showIndices && n.idx !== undefined) {
+        ctx.fillStyle = isSwapping ? '#fbbf24' : isActive ? '#93c5fd' : '#64748b';
+        ctx.font = "9px 'JetBrains Mono', monospace";
+        ctx.textAlign = 'center';
+        ctx.fillText(`[${n.idx}]`, n.x, Math.max(12, n.y - R - 4));
+      }
     });
 }
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
-import { STACK_CAPACITY, LINKED_LIST_CAPACITY, BST_CAPACITY } from '@/engines';
+import { STACK_CAPACITY, LINKED_LIST_CAPACITY, BST_CAPACITY, HEAP_CAPACITY } from '@/engines';
 
 const MetricsBar: React.FC = () => {
   const module = useAppStore((s) => s.module);
@@ -11,15 +11,20 @@ const MetricsBar: React.FC = () => {
   const queueCount = useAppStore((s) => s.queueCount);
   const llData = useAppStore((s) => s.llData);
   const bst = useAppStore((s) => s.bst);
+  const heap = useAppStore((s) => s.heap);
+  const heapType = useAppStore((s) => s.heapType);
   const status = useAppStore((s) => s.status);
   const statusColor = useAppStore((s) => s.statusColor);
 
   const isStackModule = module === 'stack';
   const isLLModule = module === 'linkedlist';
   const isBSTModule = module === 'bst';
+  const isHeapModule = module === 'heap';
   const isQueue = algo === 'queue' || algo === 'circular_queue';
 
-  const card1Label = isBSTModule
+  const card1Label = isHeapModule
+    ? 'Nodes'
+    : isBSTModule
     ? 'Nodes'
     : isLLModule
     ? 'Nodes'
@@ -28,7 +33,9 @@ const MetricsBar: React.FC = () => {
       ? 'Enqueues'
       : 'Pushes'
     : 'Comparisons';
-  const card1Value = isBSTModule
+  const card1Value = isHeapModule
+    ? `${heap ? heap.data.length : 0} / ${HEAP_CAPACITY}`
+    : isBSTModule
     ? `${bst ? bst.getNodeCount() : 0} / ${BST_CAPACITY}`
     : isLLModule
     ? `${llData.length} / ${LINKED_LIST_CAPACITY}`
@@ -36,7 +43,9 @@ const MetricsBar: React.FC = () => {
     ? metrics.accesses
     : metrics.comparisons;
 
-  const card2Label = isBSTModule
+  const card2Label = isHeapModule
+    ? heapType === 'min' ? 'Root (Min)' : 'Root (Max)'
+    : isBSTModule
     ? 'Height'
     : isLLModule
     ? 'Head'
@@ -45,7 +54,11 @@ const MetricsBar: React.FC = () => {
       ? 'Dequeues'
       : 'Pops'
     : 'Swaps';
-  const card2Value = isBSTModule
+  const card2Value = isHeapModule
+    ? heap && heap.data.length > 0
+      ? `${heap.data[0]}`
+      : 'null'
+    : isBSTModule
     ? `${bst ? bst.getHeight() : 0}`
     : isLLModule
     ? llData.length > 0
@@ -55,14 +68,18 @@ const MetricsBar: React.FC = () => {
     ? metrics.swaps
     : metrics.swaps;
 
-  const card3Label = isBSTModule
+  const card3Label = isHeapModule
+    ? 'Height'
+    : isBSTModule
     ? 'Root'
     : isLLModule
     ? 'Tail'
     : isStackModule
     ? 'Occupancy'
     : 'Array Accesses';
-  const card3Value = isBSTModule
+  const card3Value = isHeapModule
+    ? `${heap ? heap.getHeight() : 0}`
+    : isBSTModule
     ? bst && bst.root
       ? `${bst.root.val}`
       : 'null'

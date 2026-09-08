@@ -108,6 +108,7 @@ export interface TreeLayoutNode {
   val: number;
   x: number;
   y: number;
+  idx?: number;
 }
 
 export interface TreeLayoutEdge {
@@ -179,6 +180,15 @@ export interface LinkedListNarrative {
 export type BSTMode = 'bst' | 'inorder' | 'preorder' | 'postorder' | 'levelorder';
 
 export interface BSTNarrative {
+  action: string;
+  reason: string;
+  badge: string;
+  isError?: boolean;
+}
+
+export type HeapMode = 'minheap' | 'maxheap' | 'heapsort';
+
+export interface HeapNarrative {
   action: string;
   reason: string;
   badge: string;
